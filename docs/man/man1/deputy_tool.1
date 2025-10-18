@@ -1,0 +1,35 @@
+.TH DEPUTY_TOOL 1 "September 2024" "Accounting Ops" "User Commands"
+.SH NAME
+deputy_tool \- verify Deputy API credentials for multiple clients
+.SH SYNOPSIS
+.B deputy_tool
+.RI [ options ]
+.SH DESCRIPTION
+The
+.B deputy_tool
+Qt application loads the shared credential store and performs interactive
+checks to confirm that Deputy API credentials are present for a selected
+client. The tool is intended for use by accountants or support teams to
+validate configuration before payroll runs.
+.SH OPTIONS
+.TP
+.BR -c "," --credentials =
+Path to the shared credentials JSON file. Defaults to
+.IR ../config/credentials.json
+relative to the executable when not supplied.
+.TP
+.BR -h "," --help
+Display a help message and exit.
+.TP
+.BR -v "," --version
+Print version information and exit.
+.SH FILES
+.TP
+.I ~/.local/share/accounting-ops/credentials.json
+Suggested per-user override for credentials.
+.SH AUTHORS
+Accounting Ops engineering team.
+.SH SEE ALSO
+.BR client_manager_tool (1),
+.BR xero_tool (1),
+.BR quickbooks_tool (1)

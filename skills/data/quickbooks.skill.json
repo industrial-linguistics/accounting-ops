@@ -1,0 +1,10 @@
+{
+  "name": "quickbooks_bank_reconcile",
+  "description": "Reconcile QuickBooks bank feeds and highlight exceptions.",
+  "version": "1.0",
+  "entrypoint": "quickbooks_reconcile",
+  "parameters": {
+    "account_id": "QuickBooks account identifier",
+    "cutoff_date": "ISO-8601 date"
+  }
+}

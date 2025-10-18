@@ -1,0 +1,34 @@
+.TH XERO_TOOL 1 "September 2024" "Accounting Ops" "User Commands"
+.SH NAME
+xero_tool \- validate Xero API credential configuration per client
+.SH SYNOPSIS
+.B xero_tool
+.RI [ options ]
+.SH DESCRIPTION
+The
+.B xero_tool
+Qt application inspects stored credentials to ensure Xero OAuth tokens are
+available for a selected client. The GUI reports simulated diagnostics so
+that bookkeeping staff can confirm accounts are ready before performing
+cloud operations.
+.SH OPTIONS
+.TP
+.BR -c "," --credentials =
+Path to the shared credentials JSON file. Defaults to the sibling
+config directory when omitted.
+.TP
+.BR -h "," --help
+Display usage information and exit.
+.TP
+.BR -v "," --version
+Print version information and exit.
+.SH FILES
+.TP
+.I ~/.local/share/accounting-ops/credentials.json
+Suggested per-user override for credentials.
+.SH AUTHORS
+Accounting Ops engineering team.
+.SH SEE ALSO
+.BR deputy_tool (1),
+.BR quickbooks_tool (1),
+.BR client_manager_tool (1)

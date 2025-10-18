@@ -1,0 +1,29 @@
+.TH CLIENT_MANAGER_TOOL 1 "September 2024" "Accounting Ops" "User Commands"
+.SH NAME
+client_manager_tool \- review multi-client credential inventory
+.SH SYNOPSIS
+.B client_manager_tool
+.RI [ options ]
+.SH DESCRIPTION
+The
+.B client_manager_tool
+Qt application presents the list of clients stored in the shared credential
+file and displays their configured Deputy, Xero, and QuickBooks identities.
+It helps accountants ensure that credentials for each client are tracked and
+maintained.
+.SH OPTIONS
+.TP
+.BR -c "," --credentials =
+Path to the shared credentials JSON file.
+.TP
+.BR -h "," --help
+Display help and exit.
+.TP
+.BR -v "," --version
+Print version and exit.
+.SH AUTHORS
+Accounting Ops engineering team.
+.SH SEE ALSO
+.BR deputy_tool (1),
+.BR xero_tool (1),
+.BR quickbooks_tool (1)

@@ -1,0 +1,10 @@
+{
+  "name": "xero_payroll_run",
+  "description": "Prepare and run payroll in Xero with pre-flight validation.",
+  "version": "1.0",
+  "entrypoint": "xero_payroll",
+  "parameters": {
+    "pay_period": "ISO-8601 date range",
+    "submit": false
+  }
+}
