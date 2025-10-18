@@ -1,0 +1,10 @@
+{
+  "name": "deputy_timesheet_sync",
+  "description": "Synchronize Deputy timesheets and validate overtime rules.",
+  "version": "1.0",
+  "entrypoint": "deputy_sync",
+  "parameters": {
+    "date_range": "ISO-8601 date range",
+    "include_breaks": true
+  }
+}

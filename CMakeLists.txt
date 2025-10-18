@@ -1,0 +1,47 @@
+cmake_minimum_required(VERSION 3.20)
+project(AccountingOps VERSION 1.0.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
+option(USE_QT6 "Prefer Qt6 over Qt5" ON)
+
+if(USE_QT6)
+  find_package(Qt6 COMPONENTS Widgets REQUIRED)
+  set(QT_VERSION_MAJOR 6)
+else()
+  find_package(Qt5 COMPONENTS Widgets REQUIRED)
+  set(QT_VERSION_MAJOR 5)
+endif()
+
+add_subdirectory(skills)
+add_subdirectory(tools)
+
+install(DIRECTORY docs/man DESTINATION share/man)
+install(DIRECTORY docs/help DESTINATION share/accounting-ops/help)
+install(DIRECTORY skills/data DESTINATION share/accounting-ops/skills)
+
+set(CPACK_PACKAGE_NAME "accounting-ops")
+set(CPACK_PACKAGE_VENDOR "Accounting Ops Toolkit")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Cross-platform Qt tools and skills for accounting integrations")
+set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(CPACK_RESOURCE_FILE_LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/README.md)
+set(CPACK_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/docs/BUILDING.md)
+
+if(WIN32)
+  set(CPACK_GENERATOR "ZIP")
+elseif(APPLE)
+  set(CPACK_GENERATOR "DragNDrop")
+elseif(HAIKU)
+  set(CPACK_GENERATOR "Package")
+else()
+  set(CPACK_GENERATOR "TGZ")
+endif()
+
+include(CPack)

@@ -1,0 +1,6 @@
+add_subdirectory(common)
+add_subdirectory(deputy)
+add_subdirectory(xero)
+add_subdirectory(quickbooks)
+add_subdirectory(client_manager)
+add_subdirectory(skill_editor)
