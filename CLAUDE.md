@@ -1,0 +1,1 @@
+- After doing any significant amount of work, git add, commit and push the work
