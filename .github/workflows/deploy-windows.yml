@@ -1,0 +1,124 @@
+name: Build and Deploy Windows MSIX
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    env:
+      QT_VERSION: 6.6.3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2019_64
+          modules: 'qtbase'
+          tools: 'tools_ninja'
+
+      - name: Add Ninja to PATH
+        shell: powershell
+        run: |
+          $ninjaDir = "$Env:Qt6_DIR/../Tools/Ninja"
+          if (Test-Path $ninjaDir) {
+            echo "${ninjaDir}" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf8 -Append
+          }
+
+      - name: Configure
+        shell: powershell
+        run: cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        shell: powershell
+        run: cmake --build build --config Release
+
+      - name: Gather binaries
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path msix-root\assets -Force | Out-Null
+          Copy-Item build\*.exe msix-root -Force
+          $windeploy = Get-ChildItem -Path $Env:Qt6_DIR -Recurse -Filter windeployqt.exe | Select-Object -First 1
+          if (-not $windeploy) { throw 'Unable to locate windeployqt.exe' }
+          foreach ($exe in Get-ChildItem msix-root -Filter *.exe) {
+            & $windeploy.FullName $exe.FullName --dir msix-root --release --no-compiler-runtime
+          }
+          $png = [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/6Xvp/8AAAAASUVORK5CYII=')
+          [IO.File]::WriteAllBytes('msix-root\\assets\\logo.png', $png)
+          [IO.File]::WriteAllBytes('msix-root\\assets\\logo44.png', $png)
+          $manifest = @'
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap">
+  <Identity Name="com.industrial-linguistics.accountingops" Publisher="CN=Industrial Linguistics" Version="1.0.0.0" />
+  <Properties>
+    <DisplayName>Accounting Ops Toolkit</DisplayName>
+    <PublisherDisplayName>Industrial Linguistics</PublisherDisplayName>
+    <Logo>assets/logo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.19041.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Applications>
+    <Application Id="AccountingOps" Executable="client_manager_tool.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Accounting Ops Toolkit" Description="Qt tools for accounting" BackgroundColor="transparent" Square150x150Logo="assets/logo.png" Square44x44Logo="assets/logo44.png" />
+    </Application>
+  </Applications>
+</Package>
+'@
+          Set-Content -Path msix-root\AppxManifest.xml -Value $manifest -Encoding UTF8
+
+      - name: Create MSIX package
+        shell: powershell
+        run: |
+          & makeappx pack /d msix-root /p AccountingOps.msix /o
+          Get-ChildItem -Path . -Filter *.msix
+
+      - name: Import code signing certificate
+        if: secrets.WINDOWS_CERTIFICATE && secrets.WINDOWS_CERTIFICATE_PASSWORD
+        shell: powershell
+        run: |
+          $certPath = Join-Path $Env:RUNNER_TEMP 'signingCert.pfx'
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String('${{ secrets.WINDOWS_CERTIFICATE }}'))
+          $password = ConvertTo-SecureString -String '${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}' -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $certPath -Password $password -CertStoreLocation Cert:\CurrentUser\My
+          Remove-Item $certPath
+          if (-not $cert) { throw 'Failed to import Windows code signing certificate.' }
+          $thumbprint = ($cert | Select-Object -First 1).Thumbprint
+          if (-not $thumbprint) { throw 'Unable to determine certificate thumbprint.' }
+          "WINDOWS_CERT_THUMBPRINT=$thumbprint" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Sign MSIX package
+        if: env.WINDOWS_CERT_THUMBPRINT
+        shell: powershell
+        run: |
+          $timestamp = 'http://timestamp.digicert.com'
+          & signtool sign /fd SHA256 /td SHA256 /tr $timestamp /sha1 $Env:WINDOWS_CERT_THUMBPRINT AccountingOps.msix
+          Get-ChildItem Cert:\CurrentUser\My\$Env:WINDOWS_CERT_THUMBPRINT | Remove-Item -Force
+
+      - name: Configure SSH
+        shell: powershell
+        env:
+          DEPLOYMENT_SSH_KEY: ${{ secrets.DEPLOYMENT_SSH_KEY }}
+        run: |
+          New-Item -ItemType Directory -Path $Env:USERPROFILE\.ssh -Force | Out-Null
+          Set-Content -Path $Env:USERPROFILE\.ssh\id_rsa -Value $DEPLOYMENT_SSH_KEY
+          & icacls $Env:USERPROFILE\.ssh\id_rsa /inheritance:r /grant:r "$Env:USERNAME:R"
+          ssh-keyscan -H merah.cassia.ifost.org.au | Out-File -FilePath $Env:USERPROFILE\.ssh\known_hosts -Encoding utf8
+
+      - name: Deploy to server
+        shell: powershell
+        run: |
+          $remote = 'aops@merah.cassia.ifost.org.au:/var/www/vhosts/packages.industrial-linguistics.com/htdocs/accounting-ops/windows'
+          ssh aops@merah.cassia.ifost.org.au "mkdir -p /var/www/vhosts/packages.industrial-linguistics.com/htdocs/accounting-ops/windows"
+          scp AccountingOps.msix $remote/

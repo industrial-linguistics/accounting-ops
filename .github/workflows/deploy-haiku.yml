@@ -1,0 +1,68 @@
+name: Build and Deploy Haiku Package
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      HAIKU_ARCH: x86_64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Haiku toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/cross-tools-${{ env.HAIKU_ARCH }}
+            ~/haiku-hosttools
+            ~/.cache/haiku
+          key: haiku-${{ runner.os }}-${{ env.HAIKU_ARCH }}-${{ hashFiles('tools/ci/setup-haiku-cross-env.sh') }}
+
+      - name: Install base dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build rsync openssh-client curl unzip jq
+
+      - name: Setup Haiku cross environment
+        run: tools/ci/setup-haiku-cross-env.sh
+
+      - name: Configure
+        run: |
+          cmake -S . -B build-haiku -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=config/haiku-toolchain.cmake \
+            -DCMAKE_INSTALL_PREFIX=/boot/system/apps/AccountingOps \
+            -DCMAKE_PREFIX_PATH="$SYSROOT/boot/system/lib/cmake" \
+            -DHAIKU=ON
+
+      - name: Build
+        run: cmake --build build-haiku --config Release
+
+      - name: Create Haiku package
+        run: |
+          cmake --build build-haiku --target package
+          ls -al build-haiku
+
+      - name: Prepare Haiku repository
+        env:
+          PACKAGE_GLOB: build-haiku/*.hpkg
+        run: tools/ci/update-haiku-repo.sh haiku-repo
+
+      - name: Configure SSH
+        env:
+          DEPLOYMENT_SSH_KEY: ${{ secrets.DEPLOYMENT_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOYMENT_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H merah.cassia.ifost.org.au >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          ssh aops@merah.cassia.ifost.org.au "mkdir -p /var/www/vhosts/packages.industrial-linguistics.com/htdocs/accounting-ops/haiku/repo"
+          rsync -avz haiku-repo/ aops@merah.cassia.ifost.org.au:/var/www/vhosts/packages.industrial-linguistics.com/htdocs/accounting-ops/haiku/repo/
