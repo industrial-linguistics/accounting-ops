@@ -1,0 +1,27 @@
+set(CMAKE_SYSTEM_NAME Haiku)
+set(CMAKE_SYSTEM_VERSION 1)
+set(CMAKE_SYSTEM_PROCESSOR x86_64)
+
+set(HAIKU_TRIPLET "x86_64-unknown-haiku")
+
+if(NOT DEFINED ENV{CROSS_BIN})
+  message(FATAL_ERROR "CROSS_BIN environment variable is not defined. Run setup-haiku-cross-env.sh first.")
+endif()
+
+if(NOT DEFINED ENV{SYSROOT})
+  message(FATAL_ERROR "SYSROOT environment variable is not defined. Run setup-haiku-cross-env.sh first.")
+endif()
+
+set(CMAKE_C_COMPILER "$ENV{CROSS_BIN}/${HAIKU_TRIPLET}-gcc")
+set(CMAKE_CXX_COMPILER "$ENV{CROSS_BIN}/${HAIKU_TRIPLET}-g++")
+set(CMAKE_AR "$ENV{CROSS_BIN}/${HAIKU_TRIPLET}-ar")
+set(CMAKE_RANLIB "$ENV{CROSS_BIN}/${HAIKU_TRIPLET}-ranlib")
+set(CMAKE_STRIP "$ENV{CROSS_BIN}/${HAIKU_TRIPLET}-strip")
+
+set(CMAKE_SYSROOT "$ENV{SYSROOT}")
+set(CMAKE_FIND_ROOT_PATH "$ENV{SYSROOT}")
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)

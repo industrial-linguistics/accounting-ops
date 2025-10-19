@@ -1,0 +1,46 @@
+name: Build and Deploy macOS DMG
+
+on:
+  release:
+    types:
+      - released
+
+jobs:
+  build-and-deploy:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        run: |
+          brew update
+          brew install qt
+
+      - name: Configure
+        run: |
+          QT_PREFIX=$(brew --prefix qt)
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_PREFIX"
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Create DMG
+        run: |
+          cpack --config build/CPackConfig.cmake
+          ls -al build
+
+      - name: Configure SSH
+        env:
+          DEPLOYMENT_SSH_KEY: ${{ secrets.DEPLOYMENT_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOYMENT_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H merah.cassia.ifost.org.au >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          ARTIFACT=$(ls build/*.dmg)
+          ssh aops@merah.cassia.ifost.org.au "mkdir -p /var/www/vhosts/packages.industrial-linguistics.com/htdocs/accounting-ops/macos"
+          scp "$ARTIFACT" aops@merah.cassia.ifost.org.au:/var/www/vhosts/packages.industrial-linguistics.com/htdocs/accounting-ops/macos/

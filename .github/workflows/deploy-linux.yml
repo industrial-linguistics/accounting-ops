@@ -1,0 +1,67 @@
+name: Build and Deploy Linux Package
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build qt6-base-dev libgl1-mesa-dev dpkg-dev openssh-client
+
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Create Debian package
+        run: |
+          cpack --config build/CPackConfig.cmake -G DEB
+          ls -al build
+
+      - name: Prepare APT repository structure
+        run: |
+          set -euo pipefail
+          DEB_FILE=$(ls build/*.deb)
+          REPO_ROOT=apt-repo
+          POOL_DIR="$REPO_ROOT/pool/main/a/accounting-ops"
+          DIST_DIR="$REPO_ROOT/dists/stable/main/binary-amd64"
+          mkdir -p "$POOL_DIR" "$DIST_DIR"
+          cp "$DEB_FILE" "$POOL_DIR/"
+          pushd "$REPO_ROOT" >/dev/null
+          dpkg-scanpackages --multiversion pool > "$DIST_DIR/Packages"
+          gzip -fk "$DIST_DIR/Packages"
+          cat <<REL > "$DIST_DIR/Release"
+Origin: Accounting Ops Toolkit
+Label: Accounting Ops Toolkit
+Suite: stable
+Codename: stable
+Architectures: amd64
+Components: main
+Description: Accounting Ops Toolkit repository
+REL
+          popd >/dev/null
+          find "$REPO_ROOT" -maxdepth 3 -type f
+
+      - name: Configure SSH
+        env:
+          DEPLOYMENT_SSH_KEY: ${{ secrets.DEPLOYMENT_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOYMENT_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H merah.cassia.ifost.org.au >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          ssh aops@merah.cassia.ifost.org.au "mkdir -p /var/www/vhosts/packages.industrial-linguistics.com/htdocs/accounting-ops/apt"
+          rsync -avz apt-repo/ aops@merah.cassia.ifost.org.au:/var/www/vhosts/packages.industrial-linguistics.com/htdocs/accounting-ops/apt/
