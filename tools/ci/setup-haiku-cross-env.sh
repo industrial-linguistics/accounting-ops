@@ -3,19 +3,25 @@
 set -euo pipefail
 
 ARCH=${HAIKU_ARCH:-x86_64}
+CACHE_DIR=${HAIKU_CACHE_DIR:-"$HOME/.cache/haiku"}
+TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-"$CACHE_DIR/toolchain"}
 CROSS_DIR=${CROSS_DIR:-"$HOME/cross-tools-${ARCH}"}
 CROSS_BIN=${CROSS_BIN:-"$CROSS_DIR/bin"}
 SYSROOT=${SYSROOT:-"$CROSS_DIR/sysroot"}
 HOSTTOOLS_DIR=${HOSTTOOLS_DIR:-"$HOME/haiku-hosttools"}
+PKG_CACHE=${HAIKU_PKG_CACHE:-"$CACHE_DIR/hpkg/${ARCH}"}
+
+mkdir -p "$CACHE_DIR" "$PKG_CACHE"
 
 fetch_tools() {
     echo "Fetching Haiku cross compiler..."
     sudo apt-get update
     sudo apt-get install -y jq unzip qmake6 qt6-base-dev qt6-base-dev-tools
-    if [ ! -d toolchain ]; then
-        git clone --depth=1 https://github.com/haiku/haiku-toolchains-ubuntu.git toolchain
+    if [ ! -d "$TOOLCHAIN_DIR/.git" ]; then
+        rm -rf "$TOOLCHAIN_DIR"
+        git clone --depth=1 https://github.com/haiku/haiku-toolchains-ubuntu.git "$TOOLCHAIN_DIR"
     fi
-    pushd toolchain >/dev/null
+    pushd "$TOOLCHAIN_DIR" >/dev/null
     hosttools_url=$(./fetch.sh --hosttools)
     curl -sLJO "$hosttools_url"
     buildtools_url=$(./fetch.sh --buildtools --arch="$ARCH")
@@ -35,7 +41,12 @@ install_qt_packages() {
     fi
 
     mkdir -p "$SYSROOT/boot/system"
-    curl -sSL "$BASE/repo" -o repo.hpkg
+    pushd "$PKG_CACHE" >/dev/null
+    if [ -f repo.hpkg ]; then
+        curl -z repo.hpkg -sSL "$BASE/repo" -o repo.hpkg
+    else
+        curl -sSL "$BASE/repo" -o repo.hpkg
+    fi
     if [ ! -s repo.hpkg ]; then
         echo "Failed to download repository index from $BASE" >&2
         exit 1
@@ -53,6 +64,7 @@ install_qt_packages() {
         fi
         package extract -C "$SYSROOT/boot/system" "$FILE"
     done
+    popd >/dev/null
 }
 
 main() {
@@ -73,6 +85,9 @@ CROSS_BIN=$CROSS_BIN
 SYSROOT=$SYSROOT
 HOSTTOOLS_DIR=$HOSTTOOLS_DIR
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+CACHE_DIR=$CACHE_DIR
+PKG_CACHE=$PKG_CACHE
+TOOLCHAIN_DIR=$TOOLCHAIN_DIR
 ENV_VARS
     fi
 

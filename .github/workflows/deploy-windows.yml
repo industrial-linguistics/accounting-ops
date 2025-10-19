@@ -84,6 +84,28 @@ jobs:
           & makeappx pack /d msix-root /p AccountingOps.msix /o
           Get-ChildItem -Path . -Filter *.msix
 
+      - name: Import code signing certificate
+        if: secrets.WINDOWS_CERTIFICATE && secrets.WINDOWS_CERTIFICATE_PASSWORD
+        shell: powershell
+        run: |
+          $certPath = Join-Path $Env:RUNNER_TEMP 'signingCert.pfx'
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String('${{ secrets.WINDOWS_CERTIFICATE }}'))
+          $password = ConvertTo-SecureString -String '${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}' -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $certPath -Password $password -CertStoreLocation Cert:\CurrentUser\My
+          Remove-Item $certPath
+          if (-not $cert) { throw 'Failed to import Windows code signing certificate.' }
+          $thumbprint = ($cert | Select-Object -First 1).Thumbprint
+          if (-not $thumbprint) { throw 'Unable to determine certificate thumbprint.' }
+          "WINDOWS_CERT_THUMBPRINT=$thumbprint" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Sign MSIX package
+        if: env.WINDOWS_CERT_THUMBPRINT
+        shell: powershell
+        run: |
+          $timestamp = 'http://timestamp.digicert.com'
+          & signtool sign /fd SHA256 /td SHA256 /tr $timestamp /sha1 $Env:WINDOWS_CERT_THUMBPRINT AccountingOps.msix
+          Get-ChildItem Cert:\CurrentUser\My\$Env:WINDOWS_CERT_THUMBPRINT | Remove-Item -Force
+
       - name: Configure SSH
         shell: powershell
         env:
