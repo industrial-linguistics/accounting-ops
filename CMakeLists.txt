@@ -11,10 +11,10 @@ set(CMAKE_AUTOUIC ON)
 option(USE_QT6 "Prefer Qt6 over Qt5" ON)
 
 if(USE_QT6)
-  find_package(Qt6 COMPONENTS Widgets REQUIRED)
+  find_package(Qt6 COMPONENTS Widgets Sql REQUIRED)
   set(QT_VERSION_MAJOR 6)
 else()
-  find_package(Qt5 COMPONENTS Widgets REQUIRED)
+  find_package(Qt5 COMPONENTS Widgets Sql REQUIRED)
   set(QT_VERSION_MAJOR 5)
 endif()
 

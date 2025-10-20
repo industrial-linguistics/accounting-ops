@@ -1,11 +1,11 @@
 #pragma once
 
-#include <QJsonObject>
 #include <QMap>
 #include <QObject>
 #include <QString>
 #include <QStringList>
 #include <QVector>
+#include <QSqlDatabase>
 
 namespace skills {
 
@@ -27,25 +27,30 @@ class CredentialStore : public QObject {
 public:
     explicit CredentialStore(QObject *parent = nullptr);
 
+    ~CredentialStore();
+
     void clear();
     bool loadFromFile(const QString &filePath, QString *error = nullptr);
-    bool saveToFile(const QString &filePath, QString *error = nullptr) const;
 
     QVector<ClientProfile> clients() const;
     const ClientProfile *findClient(const QString &name) const;
     QStringList servicesForClient(const QString &name) const;
 
-    void addOrUpdateClient(const ClientProfile &profile);
-    bool removeClient(const QString &name);
+    bool addOrUpdateClient(const ClientProfile &profile, QString *error = nullptr);
+    bool removeClient(const QString &name, QString *error = nullptr);
 
 signals:
     void storeChanged();
 
 private:
-    QVector<ClientProfile> m_clients;
+    bool ensureSchema(QString *error);
+    bool reloadFromDatabase(QString *error);
+    void close();
 
-    static QJsonObject credentialToJson(const ServiceCredential &credential);
-    static ServiceCredential credentialFromJson(const QJsonObject &object);
+    QVector<ClientProfile> m_clients;
+    QString m_databasePath;
+    QString m_connectionName;
+    QSqlDatabase m_database;
 };
 
 } // namespace skills
