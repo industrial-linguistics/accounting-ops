@@ -1,63 +1,40 @@
 # Configuration Directory
 
-This directory stores sensitive credentials and configuration for API integrations.
+This directory holds local-only configuration and credential data for the
+Accounting Ops toolkit. Everything stored here is ignored by git so that real
+customer secrets never leave the operator's workstation.
 
 ## Security Notice
 
-**IMPORTANT**: Never commit actual credentials to git. All credential files are excluded via .gitignore.
+**IMPORTANT**: Do not commit any credential database produced by the tools.
+The `.gitignore` at the repository root prevents accidental check-ins, but
+always double check before sharing archives.
 
-## File Structure
+## Credential Database
 
-### Quickbooks Configuration
-- `quickbooks_credentials.json` - OAuth 2.0 credentials (gitignored)
-- `quickbooks_tokens.json` - Access and refresh tokens (gitignored)
+All utilities share a single SQLite database named `credentials.sqlite`. The
+file is created automatically the first time you run either of the
+first-run assistants:
 
-### Xero Configuration
-- `xero_credentials.json` - OAuth 2.0 credentials (gitignored)
-- `xero_tokens.json` - Access and refresh tokens (gitignored)
+* `first_run_gui_tool` – a guided Qt wizard that collects credentials for
+  Deputy, QuickBooks, and Xero.
+* `first_run_cli_tool` – a terminal-based workflow suited to headless
+  environments or remote shells.
 
-### Deputy Configuration
-- `deputy_credentials.json` - API credentials (gitignored)
-- `deputy_tokens.json` - Access tokens (gitignored)
+The database stores each client's display name plus their service credentials.
+You can re-run either assistant at any time to add new clients or update
+existing records.
 
-## Template Files
+## Manual editing
 
-Use the `.template` files as a starting point:
+Directly editing the SQLite file is not recommended. Use the provided tools to
+modify credentials:
 
-```bash
-cp quickbooks_credentials.json.template quickbooks_credentials.json
-# Then edit with your actual credentials
-```
+1. Launch `client_manager_tool` to review the currently stored clients and
+   verify which services are configured.
+2. Use the service-specific diagnostic tools (`deputy_tool`, `xero_tool`,
+   `quickbooks_tool`) to validate connectivity after making changes.
 
-## Setting Up Credentials
-
-### Quickbooks
-1. Create an app at https://developer.intuit.com/
-2. Get your Client ID and Client Secret
-3. Set redirect URI (e.g., http://localhost:8000/callback)
-4. Add credentials to `quickbooks_credentials.json`
-
-### Xero
-1. Create an app at https://developer.xero.com/
-2. Get your Client ID and Client Secret
-3. Set redirect URI
-4. Add credentials to `xero_credentials.json`
-
-### Deputy
-1. Get API credentials from Deputy account settings
-2. Add to `deputy_credentials.json`
-
-## Environment Variables (Alternative)
-
-You can also use environment variables instead of JSON files:
-
-```bash
-export QB_CLIENT_ID="your_client_id"
-export QB_CLIENT_SECRET="your_client_secret"
-export QB_REDIRECT_URI="http://localhost:8000/callback"
-
-export XERO_CLIENT_ID="your_client_id"
-export XERO_CLIENT_SECRET="your_client_secret"
-
-export DEPUTY_API_KEY="your_api_key"
-```
+If you must inspect the database manually (for backup or migration purposes),
+a standard SQLite browser will open the file, but avoid editing fields while
+any Accounting Ops tool is running.

@@ -12,10 +12,7 @@ static QString resolveDefaultCredentialPath() {
     const auto appDir = QCoreApplication::applicationDirPath();
     QDir candidate(appDir);
     candidate.cdUp();
-    if (candidate.exists("config/credentials.json")) {
-        return candidate.filePath("config/credentials.json");
-    }
-    return QString();
+    return candidate.filePath("config/credentials.sqlite");
 }
 
 int main(int argc, char *argv[]) {
@@ -28,7 +25,7 @@ int main(int argc, char *argv[]) {
     parser.addHelpOption();
     parser.addVersionOption();
     QCommandLineOption credentialsOption({"c", "credentials"},
-                                         "Path to the shared credentials JSON file.",
+                                         "Path to the shared credentials database file.",
                                          "file");
     parser.addOption(credentialsOption);
     parser.process(app);

@@ -14,6 +14,7 @@ target_include_directories(skills_core
 target_link_libraries(skills_core
     PUBLIC
         Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Sql
 )
 
 install(TARGETS skills_core

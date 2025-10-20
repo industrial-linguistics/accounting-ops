@@ -19,6 +19,8 @@ Linux, Haiku, macOS, and Windows via CPack.
 
 | Tool | Purpose |
 | --- | --- |
+| `first_run_gui_tool` | Guided wizard that collects credentials and writes the shared database. |
+| `first_run_cli_tool` | Terminal-based first-run flow for headless environments. |
 | `deputy_tool` | Verify Deputy credentials for a selected client. |
 | `xero_tool` | Confirm Xero OAuth configuration before payroll or invoicing. |
 | `quickbooks_tool` | Check QuickBooks credential readiness per client. |
@@ -45,10 +47,14 @@ files suitable for redistribution and app store submission (after code signing
 on macOS/Windows).
 
 ## Credentials
-Credentials are managed centrally in `config/credentials.json`. The data model
-supports multiple clients, each of which can hold service-specific credentials
-for Deputy, Xero, QuickBooks, or other integrations. Use the Client Manager GUI
-to review the current inventory.
+Credentials are managed centrally in a SQLite database stored at
+`config/credentials.sqlite`. The file is created automatically the first time
+you run either `first_run_gui_tool` or `first_run_cli_tool`. Each entry stores a
+client display name alongside per-service credentials for Deputy, Xero,
+QuickBooks, or future integrations.
+
+Use the Client Manager GUI to review the current inventory and rerun the
+first-run tools whenever you need to add or update credentials.
 
 ## Documentation
 * Man pages: `docs/man/man1/*.1`

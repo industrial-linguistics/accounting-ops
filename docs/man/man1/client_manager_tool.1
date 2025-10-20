@@ -8,13 +8,13 @@ client_manager_tool \- review multi-client credential inventory
 The
 .B client_manager_tool
 Qt application presents the list of clients stored in the shared credential
-file and displays their configured Deputy, Xero, and QuickBooks identities.
+database and displays their configured Deputy, Xero, and QuickBooks identities.
 It helps accountants ensure that credentials for each client are tracked and
 maintained.
 .SH OPTIONS
 .TP
 .BR -c "," --credentials =
-Path to the shared credentials JSON file.
+Path to the shared credentials database file.
 .TP
 .BR -h "," --help
 Display help and exit.
@@ -26,4 +26,6 @@ Accounting Ops engineering team.
 .SH SEE ALSO
 .BR deputy_tool (1),
 .BR xero_tool (1),
-.BR quickbooks_tool (1)
+.BR quickbooks_tool (1),
+.BR first_run_gui_tool (1),
+.BR first_run_cli_tool (1)

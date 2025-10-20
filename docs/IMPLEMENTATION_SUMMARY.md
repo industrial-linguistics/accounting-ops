@@ -23,8 +23,10 @@ Each executable has its own CMake target enabling independent packaging and
 store submission for Linux, Haiku, macOS, and Windows.
 
 ### Credential Model Enhancements
-* JSON credential store (`config/credentials.json`) supporting multiple clients
-  with distinct Deputy, Xero, and QuickBooks entries.
+* SQLite credential store (`config/credentials.sqlite`) created automatically on
+  first run and shared across all utilities.
+* First-run assistants (GUI and CLI) capture credentials and validate basic
+  structure before saving to the database.
 * GUI tools automatically surface missing credentials and provide diagnostic
   messaging for non-technical operators.
 
@@ -44,7 +46,7 @@ store submission for Linux, Haiku, macOS, and Windows.
 accounting-ops/
 ├── CMakeLists.txt
 ├── config/
-│   └── credentials.json
+│   └── credentials.sqlite (created at runtime)
 ├── docs/
 │   ├── BUILDING.md
 │   ├── help/

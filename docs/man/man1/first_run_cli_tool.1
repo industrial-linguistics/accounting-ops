@@ -1,0 +1,33 @@
+.TH FIRST_RUN_CLI_TOOL 1 "September 2024" "Accounting Ops" "User Commands"
+.SH NAME
+first_run_cli_tool \- terminal wizard for creating the credential database
+.SH SYNOPSIS
+.B first_run_cli_tool
+.RI [ options ]
+.SH DESCRIPTION
+.B first_run_cli_tool
+runs an interactive terminal workflow that gathers Deputy, QuickBooks, and Xero
+credentials for a client. It writes the entries to the shared SQLite database
+and confirms required fields are present before saving.
+.SH OPTIONS
+.TP
+.BR -c "," --credentials =
+Override the path to the shared credentials database file.
+.TP
+.BR -h "," --help
+Display command usage and exit.
+.TP
+.BR -v "," --version
+Print version information and exit.
+.SH FILES
+.TP
+.I ../config/credentials.sqlite
+Default database location when running from the build tree.
+.SH AUTHORS
+Accounting Ops engineering team.
+.SH SEE ALSO
+.BR first_run_gui_tool (1),
+.BR client_manager_tool (1),
+.BR deputy_tool (1),
+.BR xero_tool (1),
+.BR quickbooks_tool (1)

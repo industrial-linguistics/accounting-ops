@@ -7,13 +7,13 @@ quickbooks_tool \- confirm QuickBooks credential readiness per client
 .SH DESCRIPTION
 The
 .B quickbooks_tool
-Qt application loads client credentials and simulates QuickBooks Online
-connectivity checks. Use it to validate that each client's OAuth tokens
-are present and consistent before syncing data.
+Qt application loads client credentials from the shared SQLite database and
+simulates QuickBooks Online connectivity checks. Use it to validate that each
+client's OAuth tokens are present and consistent before syncing data.
 .SH OPTIONS
 .TP
 .BR -c "," --credentials =
-Path to the shared credentials JSON file.
+Path to the shared credentials database file.
 .TP
 .BR -h "," --help
 Display command usage and exit.
@@ -22,11 +22,13 @@ Display command usage and exit.
 Print version information and exit.
 .SH FILES
 .TP
-.I ~/.local/share/accounting-ops/credentials.json
+.I ~/.local/share/accounting-ops/credentials.sqlite
 Suggested per-user override for credentials.
 .SH AUTHORS
 Accounting Ops engineering team.
 .SH SEE ALSO
 .BR deputy_tool (1),
 .BR xero_tool (1),
-.BR client_manager_tool (1)
+.BR client_manager_tool (1),
+.BR first_run_gui_tool (1),
+.BR first_run_cli_tool (1)
