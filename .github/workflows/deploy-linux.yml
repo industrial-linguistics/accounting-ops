@@ -40,15 +40,15 @@ jobs:
           pushd "$REPO_ROOT" >/dev/null
           dpkg-scanpackages --multiversion pool > "$DIST_DIR/Packages"
           gzip -fk "$DIST_DIR/Packages"
-          cat <<REL > "$DIST_DIR/Release"
-Origin: Accounting Ops Toolkit
-Label: Accounting Ops Toolkit
-Suite: stable
-Codename: stable
-Architectures: amd64
-Components: main
-Description: Accounting Ops Toolkit repository
-REL
+          printf '%s\n' \
+            'Origin: Accounting Ops Toolkit' \
+            'Label: Accounting Ops Toolkit' \
+            'Suite: stable' \
+            'Codename: stable' \
+            'Architectures: amd64' \
+            'Components: main' \
+            'Description: Accounting Ops Toolkit repository' \
+            > "$DIST_DIR/Release"
           popd >/dev/null
           find "$REPO_ROOT" -maxdepth 3 -type f
 
