@@ -18,6 +18,17 @@ else()
   set(QT_VERSION_MAJOR 5)
 endif()
 
+# Remove deprecated AGL framework from WrapOpenGL on macOS
+# AGL was deprecated in macOS 10.14 and removed from modern SDKs
+if(APPLE AND TARGET WrapOpenGL::WrapOpenGL)
+  get_target_property(_opengl_libs WrapOpenGL::WrapOpenGL INTERFACE_LINK_LIBRARIES)
+  if(_opengl_libs)
+    list(FILTER _opengl_libs EXCLUDE REGEX ".*AGL.*")
+    set_target_properties(WrapOpenGL::WrapOpenGL PROPERTIES INTERFACE_LINK_LIBRARIES "${_opengl_libs}")
+  endif()
+endif()
+
+
 add_subdirectory(skills)
 add_subdirectory(tools)
 
