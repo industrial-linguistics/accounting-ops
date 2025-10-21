@@ -3,7 +3,12 @@ set(SKILLS_SOURCES
     src/SkillRepository.cpp
 )
 
-add_library(skills_core STATIC ${SKILLS_SOURCES})
+set(SKILLS_HEADERS
+    include/skills/CredentialStore.hpp
+    include/skills/SkillRepository.hpp
+)
+
+add_library(skills_core STATIC ${SKILLS_SOURCES} ${SKILLS_HEADERS})
 
 target_include_directories(skills_core
     PUBLIC

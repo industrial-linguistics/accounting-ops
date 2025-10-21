@@ -3,7 +3,12 @@ set(COMMON_SOURCES
     CredentialSelector.cpp
 )
 
-add_library(tooling_common STATIC ${COMMON_SOURCES})
+set(COMMON_HEADERS
+    include/tooling/ConnectionTestWidget.hpp
+    include/tooling/CredentialSelector.hpp
+)
+
+add_library(tooling_common STATIC ${COMMON_SOURCES} ${COMMON_HEADERS})
 
 target_include_directories(tooling_common
     PUBLIC
