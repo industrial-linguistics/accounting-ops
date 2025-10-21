@@ -6,3 +6,4 @@ CMakeFiles/
 *.user.*
 .DS_Store
 config/*.sqlite
+.claude/settings.local.json
