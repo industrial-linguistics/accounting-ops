@@ -1,0 +1,9 @@
+Accounting Operations Toolkit
+Copyright (c) 2025
+
+This software and associated documentation files are provided for use in
+accounting operations and integration with Deputy, Xero, and QuickBooks
+services.
+
+Permission is hereby granted to use, copy, and distribute this software
+for accounting and business operations purposes.

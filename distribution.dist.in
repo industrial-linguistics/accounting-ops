@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<installer-gui-script minSpecVersion="1.0">
+    <title>@CPACK_PACKAGE_NAME@</title>
+    <welcome file="Welcome.txt"/>
+    <readme file="ReadMe.txt"/>
+    <license file="License.txt"/>
+    <options allow-external-scripts="no" customize="allow" rootVolumeOnly="false"/>
+
+    <choices-outline>
+        <line choice="accounting-ops"/>
+    </choices-outline>
+
+    <choice id="accounting-ops" title="Accounting Ops Tools" description="CLI and GUI tools for accounting integrations">
+        <pkg-ref id="com.accountingops.pkg"/>
+    </choice>
+
+    <pkg-ref id="com.accountingops.pkg" version="@CPACK_PACKAGE_VERSION@">accounting-ops</pkg-ref>
+</installer-gui-script>
