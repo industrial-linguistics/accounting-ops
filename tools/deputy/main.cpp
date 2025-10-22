@@ -1,6 +1,7 @@
 #include "DeputyWindow.hpp"
 
 #include "skills/CredentialStore.hpp"
+#include "version.h"
 
 #include <QApplication>
 #include <QDir>
@@ -18,7 +19,7 @@ static QString resolveDefaultCredentialPath() {
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     QCoreApplication::setApplicationName("DeputyTool");
-    QCoreApplication::setApplicationVersion("1.0");
+    QCoreApplication::setApplicationVersion(ACCOUNTING_OPS_VERSION_STRING);
 
     QCommandLineParser parser;
     parser.setApplicationDescription("Deputy connection diagnostic tool");

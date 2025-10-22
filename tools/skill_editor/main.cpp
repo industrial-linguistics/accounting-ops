@@ -1,6 +1,7 @@
 #include "SkillEditorWindow.hpp"
 
 #include "skills/SkillRepository.hpp"
+#include "version.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -10,7 +11,7 @@
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     QCoreApplication::setApplicationName("SkillEditor");
-    QCoreApplication::setApplicationVersion("1.0");
+    QCoreApplication::setApplicationVersion(ACCOUNTING_OPS_VERSION_STRING);
 
     QCommandLineParser parser;
     parser.setApplicationDescription("Qt-based editor for skill definition files");

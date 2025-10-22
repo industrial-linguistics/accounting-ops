@@ -15,7 +15,7 @@ else()
     add_executable(first_run_gui_tool ${FIRST_RUN_GUI_SOURCES})
 endif()
 
-target_include_directories(first_run_gui_tool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(first_run_gui_tool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 
 target_link_libraries(first_run_gui_tool
     PRIVATE

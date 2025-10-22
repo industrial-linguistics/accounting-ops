@@ -1,6 +1,7 @@
 #include "XeroWindow.hpp"
 
 #include "skills/CredentialStore.hpp"
+#include "version.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -16,7 +17,7 @@ static QString resolveDefaultCredentialPath() {
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     QCoreApplication::setApplicationName("XeroTool");
-    QCoreApplication::setApplicationVersion("1.0");
+    QCoreApplication::setApplicationVersion(ACCOUNTING_OPS_VERSION_STRING);
 
     QCommandLineParser parser;
     parser.setApplicationDescription("Xero connection diagnostic tool");

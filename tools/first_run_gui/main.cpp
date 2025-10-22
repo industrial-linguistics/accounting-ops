@@ -1,6 +1,7 @@
 #include "FirstRunWizard.hpp"
 
 #include "skills/CredentialStore.hpp"
+#include "version.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -18,7 +19,7 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("first_run_gui_tool"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("1.0"));
+    QCoreApplication::setApplicationVersion(QStringLiteral(ACCOUNTING_OPS_VERSION_STRING));
 
     QCommandLineParser parser;
     parser.setApplicationDescription(QObject::tr("Guided first-run wizard for credential setup"));

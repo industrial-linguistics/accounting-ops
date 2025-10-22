@@ -15,7 +15,7 @@ else()
     add_executable(quickbooks_tool ${QUICKBOOKS_SOURCES})
 endif()
 
-target_include_directories(quickbooks_tool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(quickbooks_tool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 
 target_link_libraries(quickbooks_tool
     PRIVATE

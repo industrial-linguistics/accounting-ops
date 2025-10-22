@@ -4,6 +4,8 @@ set(FIRST_RUN_CLI_SOURCES
 
 add_executable(first_run_cli_tool ${FIRST_RUN_CLI_SOURCES})
 
+target_include_directories(first_run_cli_tool PRIVATE ${CMAKE_BINARY_DIR})
+
 target_link_libraries(first_run_cli_tool
     PRIVATE
         skills_core

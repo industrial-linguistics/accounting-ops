@@ -15,7 +15,7 @@ else()
     add_executable(client_manager_tool ${CLIENT_MANAGER_SOURCES})
 endif()
 
-target_include_directories(client_manager_tool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(client_manager_tool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 
 target_link_libraries(client_manager_tool
     PRIVATE

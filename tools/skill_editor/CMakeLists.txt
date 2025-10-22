@@ -15,7 +15,7 @@ else()
     add_executable(skill_editor_tool ${SKILL_EDITOR_SOURCES})
 endif()
 
-target_include_directories(skill_editor_tool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(skill_editor_tool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 
 target_link_libraries(skill_editor_tool
     PRIVATE

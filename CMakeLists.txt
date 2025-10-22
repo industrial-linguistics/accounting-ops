@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
-project(AccountingOps VERSION 1.0.0 LANGUAGES CXX)
+
+# Read version from VERSION file
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" ACCOUNTING_OPS_VERSION)
+string(STRIP "${ACCOUNTING_OPS_VERSION}" ACCOUNTING_OPS_VERSION)
+
+project(AccountingOps VERSION ${ACCOUNTING_OPS_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -7,6 +12,13 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
+
+# Generate version header
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/version.h"
+  @ONLY
+)
 
 option(USE_QT6 "Prefer Qt6 over Qt5" ON)
 
