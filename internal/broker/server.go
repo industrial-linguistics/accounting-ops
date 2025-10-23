@@ -12,9 +12,11 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -29,6 +31,11 @@ type Server struct {
 	successTemplate *template.Template
 	failureTemplate *template.Template
 }
+
+var (
+	sensitiveLogPattern     = regexp.MustCompile(`(?i)(access_token|refresh_token|id_token|client_secret)(["':=\s]+)([^"'\s&]+)`)
+	authorizationLogPattern = regexp.MustCompile(`(?i)(authorization)(["':=\s]+)([^\r\n]+)`)
+)
 
 // NewServer constructs a broker Server.
 func NewServer(cfg Config, store *Store, logger *log.Logger) *Server {
@@ -73,6 +80,9 @@ func (s *Server) basePathForRequest(r *http.Request, suffix string) string {
 }
 
 func (s *Server) handleAuthStart(w http.ResponseWriter, r *http.Request) {
+	if s.enforceJSONRateLimit(w, r, "auth_start", s.Config.RateLimitAuthStart, s.Config.RateLimitAuthStartWindow) {
+		return
+	}
 	var req struct {
 		Provider string `json:"provider"`
 		Profile  string `json:"profile"`
@@ -117,7 +127,7 @@ func (s *Server) handleAuthStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		s.Logger.Printf("start auth error provider=%s error=%v", provider, err)
+		s.logf("start auth error provider=%s error=%v", provider, err)
 		respondJSONError(w, http.StatusInternalServerError, "unable to start authorisation flow")
 		return
 	}
@@ -132,7 +142,7 @@ func (s *Server) handleAuthStart(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt:    expires,
 	}
 	if err := s.Store.InsertSession(r.Context(), sess); err != nil {
-		s.Logger.Printf("insert session error: %v", err)
+		s.logf("insert session error: %v", err)
 		respondJSONError(w, http.StatusInternalServerError, "unable to persist session")
 		return
 	}
@@ -143,7 +153,6 @@ func (s *Server) handleAuthStart(w http.ResponseWriter, r *http.Request) {
 		"auth_url": authURL,
 		"poll_url": pollURL,
 		"session":  sessionID,
-		"state":    state,
 	}
 	respondJSON(w, http.StatusOK, resp)
 }
@@ -170,7 +179,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 			s.renderFailure(w, "unknown or expired session")
 			return
 		}
-		s.Logger.Printf("lookup session failed: %v", err)
+		s.logf("lookup session failed: %v", err)
 		s.renderFailure(w, "internal error")
 		return
 	}
@@ -191,7 +200,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 		err = fmt.Errorf("unknown provider")
 	}
 	if err != nil {
-		s.Logger.Printf("exchange tokens failed provider=%s error=%v", provider, err)
+		s.logf("exchange tokens failed provider=%s error=%v", provider, err)
 		s.renderFailure(w, "token exchange failed")
 		return
 	}
@@ -201,7 +210,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 
 	payload, err := jsonMarshal(envelope)
 	if err != nil {
-		s.Logger.Printf("marshal envelope error: %v", err)
+		s.logf("marshal envelope error: %v", err)
 		s.renderFailure(w, "internal serialisation error")
 		return
 	}
@@ -211,17 +220,24 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 		realmID = &envelope.RealmID
 	}
 	if err := s.Store.MarkReady(r.Context(), sess.ID, payload, realmID); err != nil {
-		s.Logger.Printf("mark ready failed: %v", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			s.renderFailure(w, "session already consumed")
+			return
+		}
+		s.logf("mark ready failed: %v", err)
 		s.renderFailure(w, "internal persistence error")
 		return
 	}
 
 	if err := s.successTemplate.Execute(w, envelope); err != nil {
-		s.Logger.Printf("render success error: %v", err)
+		s.logf("render success error: %v", err)
 	}
 }
 
 func (s *Server) handlePoll(w http.ResponseWriter, r *http.Request) {
+	if s.enforceJSONRateLimit(w, r, "poll", s.Config.RateLimitPoll, s.Config.RateLimitPollWindow) {
+		return
+	}
 	sessionID := lastPathComponent(r.URL.Path)
 	if sessionID == "" {
 		http.NotFound(w, r)
@@ -233,7 +249,7 @@ func (s *Server) handlePoll(w http.ResponseWriter, r *http.Request) {
 			respondJSONError(w, http.StatusNotFound, "session not found")
 			return
 		}
-		s.Logger.Printf("load session error: %v", err)
+		s.logf("load session error: %v", err)
 		respondJSONError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
@@ -249,17 +265,20 @@ func (s *Server) handlePoll(w http.ResponseWriter, r *http.Request) {
 
 	var envelope TokenEnvelope
 	if err := json.Unmarshal(sess.Result, &envelope); err != nil {
-		s.Logger.Printf("unmarshal session result error: %v", err)
+		s.logf("unmarshal session result error: %v", err)
 		respondJSONError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 	if err := s.Store.Delete(r.Context(), sessionID); err != nil {
-		s.Logger.Printf("delete session error: %v", err)
+		s.logf("delete session error: %v", err)
 	}
 	respondJSON(w, http.StatusOK, envelope)
 }
 
 func (s *Server) handleRefresh(w http.ResponseWriter, r *http.Request) {
+	if s.enforceJSONRateLimit(w, r, "refresh", s.Config.RateLimitRefresh, s.Config.RateLimitRefreshWindow) {
+		return
+	}
 	var req struct {
 		Provider     string `json:"provider"`
 		RefreshToken string `json:"refresh_token"`
@@ -290,7 +309,7 @@ func (s *Server) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		s.Logger.Printf("refresh failed provider=%s error=%v", provider, err)
+		s.logf("refresh failed provider=%s error=%v", provider, err)
 		respondJSONError(w, http.StatusBadGateway, "token refresh failed")
 		return
 	}
@@ -389,7 +408,7 @@ func (s *Server) exchangeXero(ctx context.Context, sess *Session, code string) (
 
 	tenants, err := s.fetchXeroConnections(ctx, payload.AccessToken)
 	if err != nil {
-		s.Logger.Printf("fetch connections failed: %v", err)
+		s.logf("fetch connections failed: %v", err)
 	}
 
 	return TokenEnvelope{
@@ -629,7 +648,7 @@ func (s *Server) refreshXero(ctx context.Context, refreshToken string) (TokenEnv
 	}
 	tenants, err := s.fetchXeroConnections(ctx, payload.AccessToken)
 	if err != nil {
-		s.Logger.Printf("fetch connections failed: %v", err)
+		s.logf("fetch connections failed: %v", err)
 	}
 	return TokenEnvelope{
 		AccessToken:  payload.AccessToken,
@@ -711,8 +730,87 @@ func lastPathComponent(p string) string {
 func (s *Server) renderFailure(w http.ResponseWriter, msg string) {
 	w.WriteHeader(http.StatusBadRequest)
 	if err := s.failureTemplate.Execute(w, map[string]string{"Message": msg}); err != nil {
-		s.Logger.Printf("render failure template error: %v", err)
+		s.logf("render failure template error: %v", err)
 	}
+}
+
+func (s *Server) enforceJSONRateLimit(w http.ResponseWriter, r *http.Request, scope string, limit int, window time.Duration) bool {
+	if s.Store == nil || limit <= 0 {
+		return false
+	}
+	key := s.rateLimitKey(r, scope)
+	if err := s.Store.IncrementRateLimit(r.Context(), key, limit, window); err != nil {
+		if errors.Is(err, ErrRateLimited) {
+			respondJSONError(w, http.StatusTooManyRequests, "rate limit exceeded")
+			return true
+		}
+		s.logf("rate limit error scope=%s error=%v", scope, err)
+		respondJSONError(w, http.StatusInternalServerError, "internal error")
+		return true
+	}
+	return false
+}
+
+func (s *Server) rateLimitKey(r *http.Request, scope string) string {
+	ip := clientIPFromRequest(r)
+	if scope == "" {
+		return ip
+	}
+	return fmt.Sprintf("%s:%s", scope, ip)
+}
+
+func clientIPFromRequest(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		parts := strings.Split(xff, ",")
+		if len(parts) > 0 {
+			candidate := strings.TrimSpace(parts[0])
+			if candidate != "" {
+				return candidate
+			}
+		}
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+func sanitizeLogValue(val string) string {
+	if val == "" {
+		return val
+	}
+	redacted := sensitiveLogPattern.ReplaceAllString(val, "$1$2[REDACTED]")
+	redacted = authorizationLogPattern.ReplaceAllString(redacted, "$1$2[REDACTED]")
+	return redacted
+}
+
+func (s *Server) logf(format string, args ...interface{}) {
+	if s.Logger == nil {
+		return
+	}
+	sanitized := make([]interface{}, len(args))
+	for i, arg := range args {
+		switch v := arg.(type) {
+		case error:
+			if v == nil {
+				sanitized[i] = ""
+			} else {
+				sanitized[i] = sanitizeLogValue(v.Error())
+			}
+		case fmt.Stringer:
+			if v == nil {
+				sanitized[i] = ""
+			} else {
+				sanitized[i] = sanitizeLogValue(v.String())
+			}
+		case string:
+			sanitized[i] = sanitizeLogValue(v)
+		default:
+			sanitized[i] = arg
+		}
+	}
+	s.Logger.Printf(format, sanitized...)
 }
 
 const successHTML = `<!DOCTYPE html>

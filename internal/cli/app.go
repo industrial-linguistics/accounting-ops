@@ -543,7 +543,6 @@ type startResponse struct {
 	AuthURL string `json:"auth_url"`
 	PollURL string `json:"poll_url"`
 	Session string `json:"session"`
-	State   string `json:"state"`
 }
 
 // ProfileData represents stored profile credentials.

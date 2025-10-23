@@ -7,7 +7,14 @@ CREATE TABLE IF NOT EXISTS auth_session (
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL,
   ready_at INTEGER,
-  result_cipher BLOB
+  result_cipher BLOB,
+  consumed INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_auth_session_exp ON auth_session(expires_at);
+
+CREATE TABLE IF NOT EXISTS rate_limit (
+  key TEXT PRIMARY KEY,
+  window_start INTEGER NOT NULL,
+  count INTEGER NOT NULL
+);

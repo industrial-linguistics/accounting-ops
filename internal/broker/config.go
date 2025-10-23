@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -31,13 +32,26 @@ type Config struct {
 
 	SessionTTL  time.Duration
 	PollTimeout time.Duration
+
+	RateLimitAuthStart       int
+	RateLimitAuthStartWindow time.Duration
+	RateLimitPoll            int
+	RateLimitPollWindow      time.Duration
+	RateLimitRefresh         int
+	RateLimitRefreshWindow   time.Duration
 }
 
 // DefaultConfig returns a Config populated with safe defaults.
 func DefaultConfig() Config {
 	return Config{
-		SessionTTL:  time.Minute * 10,
-		PollTimeout: time.Second * 5,
+		SessionTTL:               time.Minute * 10,
+		PollTimeout:              time.Second * 5,
+		RateLimitAuthStart:       10,
+		RateLimitAuthStartWindow: time.Minute,
+		RateLimitPoll:            120,
+		RateLimitPollWindow:      time.Minute,
+		RateLimitRefresh:         60,
+		RateLimitRefreshWindow:   time.Minute,
 	}
 }
 
@@ -111,6 +125,54 @@ func LoadConfigFromEnvFile(path string) (Config, error) {
 					return cfg, fmt.Errorf("POLL_TIMEOUT_SECONDS: %w", err)
 				}
 				cfg.PollTimeout = d
+			}
+		case "RATE_LIMIT_AUTH_START":
+			if val != "" {
+				n, err := strconv.Atoi(val)
+				if err != nil {
+					return cfg, fmt.Errorf("RATE_LIMIT_AUTH_START: %w", err)
+				}
+				cfg.RateLimitAuthStart = n
+			}
+		case "RATE_LIMIT_AUTH_START_WINDOW_SECONDS":
+			if val != "" {
+				d, err := parseSeconds(val)
+				if err != nil {
+					return cfg, fmt.Errorf("RATE_LIMIT_AUTH_START_WINDOW_SECONDS: %w", err)
+				}
+				cfg.RateLimitAuthStartWindow = d
+			}
+		case "RATE_LIMIT_POLL":
+			if val != "" {
+				n, err := strconv.Atoi(val)
+				if err != nil {
+					return cfg, fmt.Errorf("RATE_LIMIT_POLL: %w", err)
+				}
+				cfg.RateLimitPoll = n
+			}
+		case "RATE_LIMIT_POLL_WINDOW_SECONDS":
+			if val != "" {
+				d, err := parseSeconds(val)
+				if err != nil {
+					return cfg, fmt.Errorf("RATE_LIMIT_POLL_WINDOW_SECONDS: %w", err)
+				}
+				cfg.RateLimitPollWindow = d
+			}
+		case "RATE_LIMIT_REFRESH":
+			if val != "" {
+				n, err := strconv.Atoi(val)
+				if err != nil {
+					return cfg, fmt.Errorf("RATE_LIMIT_REFRESH: %w", err)
+				}
+				cfg.RateLimitRefresh = n
+			}
+		case "RATE_LIMIT_REFRESH_WINDOW_SECONDS":
+			if val != "" {
+				d, err := parseSeconds(val)
+				if err != nil {
+					return cfg, fmt.Errorf("RATE_LIMIT_REFRESH_WINDOW_SECONDS: %w", err)
+				}
+				cfg.RateLimitRefreshWindow = d
 			}
 		}
 	}
