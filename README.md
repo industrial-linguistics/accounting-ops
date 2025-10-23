@@ -27,6 +27,14 @@ Linux, Haiku, macOS, and Windows via CPack.
 | `client_manager_tool` | List and inspect multi-client credential sets. |
 | `skill_editor_tool` | Browse and edit skill definition files. |
 
+### OAuth Broker and Go CLI
+The repository also provides a Go-based authentication broker (`cmd/broker`) and
+customer-facing CLI (`cmd/acct`). The broker mediates OAuth flows for Deputy,
+Xero, and QuickBooks Online using a one-time polling channel, while the CLI
+orchestrates account connections, token refresh, and credential storage via the
+OS keychain. Refer to [docs/auth-broker-architecture.md](docs/auth-broker-architecture.md)
+for detailed deployment and runtime guidance.
+
 ### Skills
 Skill definitions are stored as JSON under `skills/data` and can be loaded in
 the Qt skill editor or bundled into deployments.
@@ -59,6 +67,7 @@ first-run tools whenever you need to add or update credentials.
 ## Documentation
 * Man pages: `docs/man/man1/*.1`
 * GUI help files: `docs/help/*.md`
+* Authentication broker design: `docs/auth-broker-architecture.md`
 
 These resources are installed automatically and included in packaged builds to
 assist end users.
