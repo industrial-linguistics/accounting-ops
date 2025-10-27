@@ -244,9 +244,9 @@ jobs:
         with: { ssh-private-key: ${{ secrets.DEPLOYMENT_SSH_KEY }} }
       - run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H merah.industrial-linguistics.com >> ~/.ssh/known_hosts
+          ssh-keyscan -H merah.cassia.ifost.org.au >> ~/.ssh/known_hosts
       - run: |
-          ssh aops@merah.industrial-linguistics.com \
+          ssh aops@merah.cassia.ifost.org.au \
             'cd /var/www/vhosts/auth.industrial-linguistics.com/accounting-ops && ./scripts/build_deploy_openbsd.sh'
 ```
 
