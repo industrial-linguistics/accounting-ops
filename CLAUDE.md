@@ -97,9 +97,10 @@ The Go broker is **mandatory** for OAuth flows because:
 **Broker Deployment:**
 - Runs on OpenBSD under `httpd` + `slowcgi` in chroot `/var/www`
 - Domain: `auth.industrial-linguistics.com`
-- TLS via `acme-client`
+- **Fronted by AWS CloudFront** - CloudFront handles TLS termination, not the OpenBSD server
 - Session data stored in SQLite; **never stores long-lived refresh tokens**
 - Client secrets live in `conf/broker.env` only
+- Server accessible via SSH: `aops@merah.cassia.ifost.org.au`
 
 **Key Endpoints:**
 - `POST /v1/auth/start` - Initiate OAuth, returns auth URL and poll URL

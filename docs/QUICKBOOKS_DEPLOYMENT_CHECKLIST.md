@@ -16,6 +16,12 @@ This checklist ensures all components are properly deployed and configured for t
   - Web server: httpd with slowcgi
   - Verify server version: `uname -a`
 
+- [ ] **Architecture Overview**
+  - CloudFront CDN fronts the OpenBSD origin server
+  - CloudFront handles TLS/SSL termination
+  - Domain: `auth.industrial-linguistics.com` → CloudFront → `merah.cassia.ifost.org.au`
+  - OAuth callbacks flow through CloudFront to broker CGI
+
 ## OAuth Broker Deployment
 
 ### CGI Binary
@@ -109,28 +115,45 @@ This checklist ensures all components are properly deployed and configured for t
   - Service should be enabled and running
   - Check logs for errors: `tail -f /var/www/logs/error_log`
 
-## TLS/SSL Configuration
+## CloudFront & TLS Configuration
+
+**Note:** The OpenBSD server is fronted by AWS CloudFront. CloudFront handles TLS termination, not the origin server.
+
+- [ ] **CloudFront Distribution**
+  - Distribution configured for `auth.industrial-linguistics.com`
+  - Origin points to OpenBSD server at `merah.cassia.ifost.org.au`
+  - Origin protocol: HTTP (CloudFront → origin) or HTTPS
+  - Viewer protocol: HTTPS only (client → CloudFront)
 
 - [ ] **TLS Certificate Valid**
   ```bash
-  # Check certificate expiration
+  # Check certificate expiration (CloudFront-managed)
   echo | openssl s_client -connect auth.industrial-linguistics.com:443 2>/dev/null | openssl x509 -noout -dates
   ```
   - Certificate not expired
-  - Issued for correct domain
+  - Issued for correct domain (via AWS Certificate Manager or custom cert)
   - Chain valid and trusted
 
-- [ ] **acme-client Configuration**
-  ```bash
-  # Review Let's Encrypt config
-  cat /etc/acme-client.conf
-  ```
-  - Domain configured for auto-renewal
-  - Verify cron job for renewal exists
+- [ ] **CloudFront Caching**
+  - OAuth endpoints should have appropriate caching policies
+  - `POST /v1/auth/start` - no caching
+  - `GET /v1/auth/poll/*` - no caching
+  - `POST /v1/token/refresh` - no caching
+  - Static content (if any) can be cached
+
+- [ ] **CloudFront Origin Settings**
+  - Origin timeout sufficient for CGI processing
+  - Origin connection attempts configured
+  - Custom headers (if required) forwarded to origin
 
 - [ ] **HTTPS Redirect**
-  - HTTP (port 80) redirects to HTTPS (port 443)
+  - HTTP (port 80) redirects to HTTPS (port 443) at CloudFront level
   - Test: `curl -I http://auth.industrial-linguistics.com`
+
+- [ ] **OpenBSD httpd Configuration**
+  - Server accepts HTTP traffic from CloudFront
+  - No TLS/SSL configuration needed on OpenBSD (CloudFront handles it)
+  - Optional: Restrict access to CloudFront IP ranges if needed
 
 ## Broker Endpoints Testing
 
@@ -345,16 +368,32 @@ This checklist ensures all components are properly deployed and configured for t
 
 ## Monitoring & Logs
 
-- [ ] **Broker Logs**
+- [ ] **Broker Logs (OpenBSD)**
   ```bash
-  # Check httpd error logs
+  # Check httpd error logs on origin server
   tail -f /var/www/logs/error_log
-  # Check access logs
+  # Check access logs on origin server
   tail -f /var/www/logs/access_log
   ```
   - Monitor for OAuth errors
   - Watch for API failures
-  - Check for certificate issues
+  - Check for CGI processing errors
+
+- [ ] **CloudFront Logs**
+  - CloudFront access logs enabled (optional but recommended)
+  - Logs delivered to S3 bucket
+  - Monitor for:
+    - TLS/certificate issues
+    - Geographic traffic patterns
+    - Request/response sizes
+    - Cache hit ratios
+    - Error rates (4xx/5xx)
+
+- [ ] **CloudFront Monitoring**
+  - CloudWatch metrics enabled
+  - Monitor distribution health
+  - Set up alarms for error rate spikes
+  - Track origin response times
 
 - [ ] **Session Cleanup**
   - Verify old sessions are purged
@@ -431,8 +470,11 @@ acct connect qbo --profile "My Company"
 acct whoami --profile "My Company"
 ```
 
-### Verify TLS
+### Verify TLS (CloudFront)
 ```bash
+# Test HTTPS access (CloudFront-managed)
 curl -I https://auth.industrial-linguistics.com
+
+# Check certificate details (CloudFront's certificate)
 openssl s_client -connect auth.industrial-linguistics.com:443 -servername auth.industrial-linguistics.com
 ```
