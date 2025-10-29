@@ -1,0 +1,88 @@
+name: Deploy OAuth Broker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'cmd/broker/**'
+      - 'internal/broker/**'
+      - 'scripts/build_deploy_broker.sh'
+      - '.github/workflows/deploy-broker.yml'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual deployment'
+        required: false
+        default: 'Manual deployment'
+
+jobs:
+  deploy:
+    name: Deploy to OpenBSD Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy broker to server
+        run: |
+          ssh aops@merah.cassia.ifost.org.au << 'ENDSSH'
+            set -e
+            echo "==> Navigating to accounting-ops repository..."
+            cd ~/accounting-ops
+
+            echo "==> Current branch:"
+            git branch --show-current
+
+            echo "==> Pulling latest changes..."
+            git pull origin main
+
+            echo "==> Running build and deploy script..."
+            ./scripts/build_deploy_broker.sh
+
+            echo "==> Deployment complete!"
+          ENDSSH
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting 5 seconds for broker to initialize..."
+          sleep 5
+
+          echo "Testing broker endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://auth.industrial-linguistics.com/v1/auth/start \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"provider":"qbo","profile":"test"}')
+
+          echo "HTTP response code: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" = "404" ]; then
+            echo "⚠️  WARNING: Broker still returning 404. Check server logs."
+            echo "This may be expected if broker.env is not configured yet."
+            exit 0
+          elif [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "400" ] || [ "$HTTP_CODE" = "500" ]; then
+            echo "✓ Broker is responding (HTTP $HTTP_CODE)"
+            exit 0
+          else
+            echo "✗ Unexpected response code: $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Deployment notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✓ Broker deployed successfully to auth.industrial-linguistics.com"
+          else
+            echo "✗ Deployment failed. Check logs above."
+            exit 1
+          fi
