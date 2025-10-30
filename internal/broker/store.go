@@ -40,7 +40,7 @@ var ErrRateLimited = errors.New("rate limit exceeded")
 
 // OpenStore opens (and initialises) the session store database.
 func OpenStore(path string) (*Store, error) {
-	db, err := sql.Open("sqlite", fmt.Sprintf("file:%s?_busy_timeout=5000&_pragma=journal_mode(WAL)", path))
+	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?_busy_timeout=5000&_pragma=journal_mode(WAL)", path))
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
