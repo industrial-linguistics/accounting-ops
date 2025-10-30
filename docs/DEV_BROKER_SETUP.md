@@ -232,48 +232,25 @@ ssh aops@merah.cassia.ifost.org.au "doas chmod 755 /var/www/vhosts/auth-dev.indu
 
 ### Option B: Automated Deployment (Recommended)
 
-Create a deployment script `scripts/build_deploy_broker_dev.sh`:
+Use the provided development deployment script:
 
 ```bash
-#!/bin/sh
-# Build and deploy development OAuth broker to auth-dev.industrial-linguistics.com
-
-set -e
-
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
-
-echo "${GREEN}==> Building OAuth broker for OpenBSD (development)...${NC}"
-cd "$(dirname "$0")/../cmd/broker" || exit 1
-
-# Build for OpenBSD amd64 with static linking
-CGO_ENABLED=0 GOOS=openbsd GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o broker
-
-echo "${GREEN}==> Built successfully ($(du -h broker | awk '{print $1}'))${NC}"
-
-# Deployment path for development broker
-BROKER_BIN_PATH="/var/www/vhosts/auth-dev.industrial-linguistics.com/cgi-bin/broker"
-
-echo "${GREEN}==> Deploying to ${BROKER_BIN_PATH}...${NC}"
-doas cp broker "${BROKER_BIN_PATH}"
-doas chmod 755 "${BROKER_BIN_PATH}"
-
-echo "${GREEN}==> Deployment complete!${NC}"
-echo "Test at: https://auth-dev.industrial-linguistics.com/cgi-bin/broker/healthz"
-```
-
-Make it executable:
-```bash
-chmod +x scripts/build_deploy_broker_dev.sh
-```
-
-Usage:
-```bash
+# On the server (via SSH):
 ssh aops@merah.cassia.ifost.org.au
 cd ~/accounting-ops
 git pull origin main
-./scripts/build_deploy_broker_dev.sh
+
+# Run the development deployment script
+./scripts/deploy_dev_broker.sh
 ```
+
+The script (`scripts/deploy_dev_broker.sh`) will:
+- Build the broker binary for OpenBSD
+- Deploy to `/var/www/vhosts/auth-dev.industrial-linguistics.com/cgi-bin/broker`
+- Set correct permissions (755)
+- Verify the development environment configuration
+- Check broker.env exists with correct permissions (640, root:www)
+- Provide detailed next steps if any issues are found
 
 ## Step 6: GitHub Actions (Optional)
 
