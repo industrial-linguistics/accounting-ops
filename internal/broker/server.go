@@ -337,7 +337,7 @@ func (s *Server) startXeroAuth(state string) (string, sql.NullString, error) {
 	v.Set("state", state)
 	v.Set("code_challenge", challenge)
 	v.Set("code_challenge_method", "S256")
-	authURL := "https://login.xero.com/identity/connect/authorize?" + v.Encode()
+	authURL := s.Config.GetXeroAuthURL() + "?" + v.Encode()
 	return authURL, sql.NullString{String: verifier, Valid: true}, nil
 }
 
@@ -348,7 +348,7 @@ func (s *Server) startDeputyAuth(state string) (string, error) {
 	v.Set("redirect_uri", s.Config.DeputyRedirectURL)
 	v.Set("scope", strings.Join(s.Config.DeputyScopes, " "))
 	v.Set("state", state)
-	authURL := "https://once.deputy.com/my/oauth/login?" + v.Encode()
+	authURL := s.Config.GetDeputyAuthURL() + "?" + v.Encode()
 	return authURL, nil
 }
 
@@ -359,7 +359,7 @@ func (s *Server) startQBOAuth(state string) (string, error) {
 	v.Set("response_type", "code")
 	v.Set("scope", strings.Join(s.Config.QBOScopes, " "))
 	v.Set("state", state)
-	authURL := "https://appcenter.intuit.com/connect/oauth2?" + v.Encode()
+	authURL := s.Config.GetQBOAuthURL() + "?" + v.Encode()
 	return authURL, nil
 }
 
@@ -376,7 +376,7 @@ func (s *Server) exchangeXero(ctx context.Context, sess *Session, code string) (
 		data.Set("code_verifier", sess.CodeVerifier.String)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://identity.xero.com/connect/token", strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.Config.GetXeroTokenURL(), strings.NewReader(data.Encode()))
 	if err != nil {
 		return TokenEnvelope{}, err
 	}
@@ -433,7 +433,7 @@ func (s *Server) exchangeDeputy(ctx context.Context, code string) (TokenEnvelope
 	data.Set("redirect_uri", s.Config.DeputyRedirectURL)
 	data.Set("code", code)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://once.deputy.com/my/oauth/access_token", strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.Config.GetDeputyTokenURL(), strings.NewReader(data.Encode()))
 	if err != nil {
 		return TokenEnvelope{}, err
 	}
@@ -477,7 +477,7 @@ func (s *Server) exchangeQBO(ctx context.Context, code, realmID string) (TokenEn
 	data.Set("code", code)
 	data.Set("redirect_uri", s.Config.QBORedirectURL)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer", strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.Config.GetQBOTokenURL(), strings.NewReader(data.Encode()))
 	if err != nil {
 		return TokenEnvelope{}, err
 	}
@@ -528,7 +528,7 @@ func (s *Server) refreshDeputy(ctx context.Context, refreshToken string) (TokenE
 	data.Set("client_id", s.Config.DeputyClientID)
 	data.Set("client_secret", s.Config.DeputyClientSecret)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://once.deputy.com/my/oauth/access_token", strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.Config.GetDeputyTokenURL(), strings.NewReader(data.Encode()))
 	if err != nil {
 		return TokenEnvelope{}, err
 	}
@@ -569,7 +569,7 @@ func (s *Server) refreshQBO(ctx context.Context, refreshToken string) (TokenEnve
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refreshToken)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer", strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.Config.GetQBOTokenURL(), strings.NewReader(data.Encode()))
 	if err != nil {
 		return TokenEnvelope{}, err
 	}
@@ -618,7 +618,7 @@ func (s *Server) refreshXero(ctx context.Context, refreshToken string) (TokenEnv
 	data.Set("refresh_token", refreshToken)
 	data.Set("client_id", s.Config.XeroClientID)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://identity.xero.com/connect/token", strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.Config.GetXeroTokenURL(), strings.NewReader(data.Encode()))
 	if err != nil {
 		return TokenEnvelope{}, err
 	}
@@ -661,7 +661,7 @@ func (s *Server) refreshXero(ctx context.Context, refreshToken string) (TokenEnv
 }
 
 func (s *Server) fetchXeroConnections(ctx context.Context, accessToken string) ([]XeroTenant, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.xero.com/connections", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.Config.GetXeroAPIBaseURL()+"/connections", nil)
 	if err != nil {
 		return nil, err
 	}
