@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Development environment configuration
 DOMAIN="auth-dev.industrial-linguistics.com"
-BROKER_BIN_PATH="/var/www/vhosts/${DOMAIN}/cgi-bin/broker"
+BROKER_BIN_PATH="/var/www/vhosts/${DOMAIN}/v1"
 BROKER_DATA_DIR="/var/www/vhosts/${DOMAIN}/data"
 BROKER_CONF="/var/www/vhosts/${DOMAIN}/conf/broker.env"
 
@@ -93,10 +93,10 @@ if [ -f "${BROKER_CONF}" ]; then
             echo "  Fix with: doas chmod 640 ${BROKER_CONF}"
         fi
 
-        if [ "$OWNER" != "root:www" ]; then
-            echo "${YELLOW}  ⚠ WARNING: Owner should be root:www${NC}"
+        if [ "$OWNER" != "aops:www" ]; then
+            echo "${YELLOW}  ⚠ WARNING: Owner should be aops:www${NC}"
             echo "  Current: ${OWNER}"
-            echo "  Fix with: doas chown root:www ${BROKER_CONF}"
+            echo "  Fix with: doas chown aops:www ${BROKER_CONF}"
         fi
     fi
 
@@ -106,14 +106,14 @@ if [ -f "${BROKER_CONF}" ]; then
     else
         echo "${RED}  ✗ www user CANNOT read configuration${NC}"
         echo "  This will cause the broker to fail!"
-        echo "  Fix with: doas chmod 640 ${BROKER_CONF} && doas chown root:www ${BROKER_CONF}"
+        echo "  Fix with: doas chmod 640 ${BROKER_CONF} && doas chown aops:www ${BROKER_CONF}"
     fi
 else
     echo "${YELLOW}⚠ Configuration file missing: ${BROKER_CONF}${NC}"
     echo "  Create this file with OAuth sandbox/development credentials"
     echo "  See: docs/BROKER_ENV_TEMPLATE.md"
     echo "  Set permissions: doas chmod 640 ${BROKER_CONF}"
-    echo "  Set ownership: doas chown root:www ${BROKER_CONF}"
+    echo "  Set ownership: doas chown aops:www ${BROKER_CONF}"
 fi
 
 echo ""
@@ -128,13 +128,13 @@ echo ""
 echo "${BLUE}Next Steps:${NC}"
 echo "  1. Ensure ${BROKER_CONF} has correct permissions:"
 echo "     ${YELLOW}doas chmod 640 ${BROKER_CONF}${NC}"
-echo "     ${YELLOW}doas chown root:www ${BROKER_CONF}${NC}"
+echo "     ${YELLOW}doas chown aops:www ${BROKER_CONF}${NC}"
 echo ""
 echo "  2. Test health endpoint:"
-echo "     ${YELLOW}curl https://${DOMAIN}/cgi-bin/broker/healthz${NC}"
+echo "     ${YELLOW}curl https://${DOMAIN}/v1/healthz${NC}"
 echo ""
 echo "  3. Test OAuth flow with CLI:"
-echo "     ${YELLOW}export ACCOUNTING_OPS_BROKER=https://${DOMAIN}/cgi-bin/broker${NC}"
+echo "     ${YELLOW}export ACCOUNTING_OPS_BROKER=https://${DOMAIN}/v1${NC}"
 echo "     ${YELLOW}acct connect qbo --profile test-sandbox${NC}"
 echo ""
 echo "  4. Check server logs if issues:"

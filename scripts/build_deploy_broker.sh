@@ -29,7 +29,7 @@ else
     echo "${GREEN}==> Deploying to DEVELOPMENT (${DOMAIN})${NC}"
 fi
 
-BROKER_BIN_PATH="/var/www/vhosts/${DOMAIN}/cgi-bin/broker"
+BROKER_BIN_PATH="/var/www/vhosts/${DOMAIN}/v1"
 BROKER_DATA_DIR="/var/www/vhosts/${DOMAIN}/data"
 BROKER_CONF="/var/www/vhosts/${DOMAIN}/conf/broker.env"
 
@@ -94,15 +94,15 @@ if [ -f "${BROKER_CONF}" ]; then
         echo "${YELLOW}  ⚠ WARNING: Permissions should be 640 (rw-r-----)${NC}"
         echo "  Fix with: doas chmod 640 ${BROKER_CONF}"
     fi
-    if [ "$OWNER" != "root:www" ]; then
-        echo "${YELLOW}  ⚠ WARNING: Owner should be root:www${NC}"
-        echo "  Fix with: doas chown root:www ${BROKER_CONF}"
+    if [ "$OWNER" != "aops:www" ]; then
+        echo "${YELLOW}  ⚠ WARNING: Owner should be aops:www${NC}"
+        echo "  Fix with: doas chown aops:www ${BROKER_CONF}"
     fi
 else
     echo "${YELLOW}⚠ Configuration file missing: ${BROKER_CONF}${NC}"
     echo "  Create this file with OAuth credentials before testing"
     echo "  Set permissions: doas chmod 640 ${BROKER_CONF}"
-    echo "  Set ownership: doas chown root:www ${BROKER_CONF}"
+    echo "  Set ownership: doas chown aops:www ${BROKER_CONF}"
 fi
 
 echo ""
@@ -112,6 +112,6 @@ echo "Environment: ${ENVIRONMENT}"
 echo "Domain: https://${DOMAIN}"
 echo ""
 echo "Next steps:"
-echo "  1. Ensure ${BROKER_CONF} exists with OAuth credentials (640, root:www)"
-echo "  2. Test broker: curl https://${DOMAIN}/cgi-bin/broker/healthz"
+echo "  1. Ensure ${BROKER_CONF} exists with OAuth credentials (640, aops:www)"
+echo "  2. Test broker: curl https://${DOMAIN}/v1/healthz"
 echo "  3. Check logs: tail -f /var/www/logs/error_log"
