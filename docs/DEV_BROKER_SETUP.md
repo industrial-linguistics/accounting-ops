@@ -203,11 +203,13 @@ RATE_LIMIT_POLL=60
 RATE_LIMIT_REFRESH=30
 ```
 
-Set correct permissions:
+Set correct permissions (readable by www user):
 ```bash
-doas chmod 600 /var/www/vhosts/auth-dev.industrial-linguistics.com/conf/broker.env
-doas chown root:daemon /var/www/vhosts/auth-dev.industrial-linguistics.com/conf/broker.env
+doas chmod 640 /var/www/vhosts/auth-dev.industrial-linguistics.com/conf/broker.env
+doas chown root:www /var/www/vhosts/auth-dev.industrial-linguistics.com/conf/broker.env
 ```
+
+**Note:** The broker runs as user `www` (httpd/slowcgi), so it must be able to read the file. Permissions `640` (rw-r-----) allow root to edit and www to read, while preventing world access.
 
 ## Step 5: Deploy Development Broker Binary
 

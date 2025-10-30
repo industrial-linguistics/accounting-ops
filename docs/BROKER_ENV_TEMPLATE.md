@@ -240,5 +240,5 @@ DEPUTY_TOKEN_URL=https://staging.deputy.com/my/oauth/access_token
 - [ ] Set appropriate rate limits based on expected usage
 - [ ] Test with sandbox/development credentials first
 - [ ] Switch to production credentials when ready to go live
-- [ ] Keep broker.env file permissions restrictive (600)
+- [ ] Keep broker.env file permissions restrictive (640, owned by root:www)
 - [ ] Never commit broker.env to version control

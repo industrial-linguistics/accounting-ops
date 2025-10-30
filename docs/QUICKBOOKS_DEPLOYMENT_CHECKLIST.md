@@ -461,3 +461,213 @@ curl -I https://auth.industrial-linguistics.com
 # Check certificate details (Cloudflare-issued)
 openssl s_client -connect auth.industrial-linguistics.com:443 -servername auth.industrial-linguistics.com
 ```
+
+---
+
+## Development Environment Verification
+
+This section verifies the development/sandbox OAuth broker at `auth-dev.industrial-linguistics.com`.
+
+### DNS and Infrastructure
+
+- [ ] **DNS Resolution**
+  ```bash
+  dig auth-dev.industrial-linguistics.com
+  # Should resolve to your server IP
+  ```
+
+- [ ] **TLS via Cloudflare**
+  ```bash
+  curl -I https://auth-dev.industrial-linguistics.com
+  # Should return 200 or 404 (Cloudflare is working)
+  ```
+
+### Server Configuration
+
+- [ ] **httpd Virtual Host**
+  ```bash
+  ssh aops@merah.cassia.ifost.org.au
+  doas cat /etc/httpd.conf | grep -A 10 auth-dev.industrial-linguistics.com
+  # Should show virtual host configuration for development broker
+  ```
+
+- [ ] **Directory Structure**
+  ```bash
+  ls -lh /var/www/vhosts/auth-dev.industrial-linguistics.com/
+  # Should show: cgi-bin/, conf/, data/, htdocs/, logs/
+  ```
+
+### Development Broker Deployment
+
+- [ ] **Broker Binary Deployed**
+  ```bash
+  ls -lh /var/www/vhosts/auth-dev.industrial-linguistics.com/cgi-bin/broker
+  file /var/www/vhosts/auth-dev.industrial-linguistics.com/cgi-bin/broker
+  # Should be OpenBSD executable, ~11-12MB
+  ```
+
+- [ ] **Configuration File Deployed**
+  ```bash
+  ls -lh /var/www/vhosts/auth-dev.industrial-linguistics.com/conf/broker.env
+  # Should be: -rw-r----- root:www (640 permissions)
+  ```
+
+- [ ] **Configuration Contents**
+  ```bash
+  doas cat /var/www/vhosts/auth-dev.industrial-linguistics.com/conf/broker.env
+  ```
+  Verify:
+  - `QBO_ENVIRONMENT=sandbox`
+  - `QBO_CLIENT_ID` = sandbox credentials
+  - `QBO_CLIENT_SECRET` = sandbox credentials
+  - `XERO_*` variables set (or placeholders)
+  - `DEPUTY_*` variables set (or placeholders)
+  - `BROKER_MASTER_KEY` is set (different from production!)
+
+- [ ] **File Permissions Correct**
+  ```bash
+  stat -f "%Op %Su:%Sg" /var/www/vhosts/auth-dev.industrial-linguistics.com/conf/broker.env
+  # Should output: 100640 root:www
+  ```
+
+### Development Broker Endpoints
+
+- [ ] **Health Endpoint**
+  ```bash
+  curl https://auth-dev.industrial-linguistics.com/cgi-bin/broker/healthz
+  # Expected: {"status":"ok","version":"..."}
+  ```
+
+- [ ] **OAuth Start Endpoint**
+  ```bash
+  curl -X POST https://auth-dev.industrial-linguistics.com/cgi-bin/broker/v1/auth/start \
+    -H "Content-Type: application/json" \
+    -d '{"provider":"qbo","profile":"test"}'
+  # Should return session ID, auth URL, and poll URL
+  ```
+
+### QuickBooks Sandbox Configuration
+
+- [ ] **Redirect URI Registered**
+  - Log into https://developer.intuit.com/
+  - Go to "My Apps" → Your App → "Keys & credentials"
+  - Under **Development** section, verify redirect URI:
+    ```
+    https://auth-dev.industrial-linguistics.com/v1/callback/qbo
+    ```
+
+- [ ] **Sandbox Companies Available**
+  - Click "Test connect to app (OAuth)" in developer portal
+  - Should see list of sandbox companies
+  - Create test companies if needed
+
+### CLI Testing with Development Broker
+
+- [ ] **Environment Variable Set**
+  ```bash
+  export ACCOUNTING_OPS_BROKER=https://auth-dev.industrial-linguistics.com/cgi-bin/broker
+  acct connect qbo --profile "Test Sandbox Company"
+  ```
+
+- [ ] **OAuth Flow Completes**
+  - Browser opens to QuickBooks sandbox login
+  - Lists sandbox companies only (not real companies)
+  - Select a sandbox company
+  - CLI receives tokens successfully
+  - Profile saved to OS keychain
+
+- [ ] **Verify Stored Credentials**
+  ```bash
+  acct list
+  # Should show "Test Sandbox Company (qbo)"
+
+  acct whoami --profile "Test Sandbox Company" --provider qbo
+  # Should show realm ID and expiration
+  ```
+
+### GitHub Actions Deployment
+
+- [ ] **Workflow Configured for Dev**
+  - Check `.github/workflows/deploy-broker.yml`
+  - Should trigger on `develop` and `feature/**` branches
+  - Should deploy to `auth-dev.industrial-linguistics.com`
+
+- [ ] **Test Dev Deployment**
+  ```bash
+  git checkout -b feature/test-dev-deploy
+  # Make a trivial change to cmd/broker/
+  git commit -m "Test dev deployment"
+  git push origin feature/test-dev-deploy
+  ```
+  - Check GitHub Actions run
+  - Verify deployment to development broker
+  - Verify production broker unchanged
+
+### Comparison: Production vs Development
+
+| Aspect | Production | Development |
+|--------|-----------|-------------|
+| **Domain** | auth.industrial-linguistics.com | auth-dev.industrial-linguistics.com |
+| **Git Branch** | main | develop, feature/* |
+| **QBO Environment** | production | sandbox |
+| **QBO Credentials** | Production keys | Sandbox/development keys |
+| **Companies** | Real customer data | Test/sandbox companies |
+| **Auto-deploy** | Push to `main` | Push to non-main branches |
+| **CLI Access** | Default | Set `ACCOUNTING_OPS_BROKER` env var |
+
+### Verify Isolation
+
+- [ ] **Separate Configuration Files**
+  ```bash
+  doas diff /var/www/vhosts/auth.industrial-linguistics.com/conf/broker.env \
+            /var/www/vhosts/auth-dev.industrial-linguistics.com/conf/broker.env
+  # Should show different CLIENT_ID, CLIENT_SECRET, and ENVIRONMENT values
+  ```
+
+- [ ] **Separate Session Storage**
+  ```bash
+  ls -l /var/www/vhosts/auth.industrial-linguistics.com/data/
+  ls -l /var/www/vhosts/auth-dev.industrial-linguistics.com/data/
+  # Should have separate session.db files
+  ```
+
+- [ ] **CLI Profiles Separate**
+  ```bash
+  # Production profile
+  acct connect qbo --profile "Real Company"
+
+  # Development profile (different broker, different name)
+  export ACCOUNTING_OPS_BROKER=https://auth-dev.industrial-linguistics.com/cgi-bin/broker
+  acct connect qbo --profile "Sandbox Company"
+
+  # List both
+  acct list
+  # Should show both profiles with distinct names
+  ```
+
+### Troubleshooting Development Environment
+
+**Issue: dev broker returns 404**
+```bash
+# Check httpd config includes dev virtual host
+doas cat /etc/httpd.conf | grep auth-dev
+# Check broker binary exists
+ls -lh /var/www/vhosts/auth-dev.industrial-linguistics.com/cgi-bin/broker
+# Check httpd and slowcgi are running
+rcctl check httpd slowcgi
+```
+
+**Issue: OAuth returns redirect_uri_mismatch**
+```bash
+# Verify redirect URI in Intuit developer portal
+# Must exactly match: https://auth-dev.industrial-linguistics.com/v1/callback/qbo
+# Check for trailing slashes, http vs https
+```
+
+**Issue: Connecting to production companies instead of sandbox**
+```bash
+# Verify broker.env has QBO_ENVIRONMENT=sandbox
+doas grep QBO_ENVIRONMENT /var/www/vhosts/auth-dev.industrial-linguistics.com/conf/broker.env
+# Verify using sandbox credentials (from Development section in Intuit portal)
+doas grep QBO_CLIENT_ID /var/www/vhosts/auth-dev.industrial-linguistics.com/conf/broker.env
+```

@@ -3,7 +3,9 @@ name: Deploy OAuth Broker
 on:
   push:
     branches:
-      - main
+      - main        # Production deployment
+      - develop     # Development deployment
+      - 'feature/**'  # Development deployment
     paths:
       - 'cmd/broker/**'
       - 'internal/broker/**'
@@ -18,7 +20,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to OpenBSD Server
+    name: Deploy to ${{ github.ref_name == 'main' && 'Production' || 'Development' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -34,8 +36,10 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
 
       - name: Deploy broker to server
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |
-          ssh aops@merah.cassia.ifost.org.au << 'ENDSSH'
+          ssh aops@merah.cassia.ifost.org.au << ENDSSH
             set -e
             echo "==> Navigating to accounting-ops repository..."
             cd ~/accounting-ops
@@ -43,8 +47,10 @@ jobs:
             echo "==> Current branch:"
             git branch --show-current
 
-            echo "==> Pulling latest changes..."
-            git pull origin main
+            echo "==> Fetching and checking out ${BRANCH}..."
+            git fetch origin
+            git checkout ${BRANCH}
+            git pull origin ${BRANCH}
 
             echo "==> Running build and deploy script..."
             ./scripts/build_deploy_broker.sh
@@ -53,17 +59,41 @@ jobs:
           ENDSSH
 
       - name: Verify deployment
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |
+          # Determine domain based on branch
+          if [ "$BRANCH" = "main" ]; then
+            DOMAIN="auth.industrial-linguistics.com"
+            ENV_NAME="Production"
+          else
+            DOMAIN="auth-dev.industrial-linguistics.com"
+            ENV_NAME="Development"
+          fi
+
+          echo "==> Verifying ${ENV_NAME} broker at ${DOMAIN}..."
           echo "Waiting 5 seconds for broker to initialize..."
           sleep 5
 
-          echo "Testing broker endpoint..."
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://auth.industrial-linguistics.com/v1/auth/start \
+          # Test health endpoint first
+          echo "Testing health endpoint..."
+          HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${DOMAIN}/cgi-bin/broker/healthz || echo "000")
+          echo "Health endpoint HTTP code: $HEALTH_CODE"
+
+          if [ "$HEALTH_CODE" = "200" ]; then
+            echo "✓ Broker is healthy!"
+          else
+            echo "⚠️  WARNING: Health endpoint returned $HEALTH_CODE"
+          fi
+
+          # Test auth endpoint
+          echo "Testing auth endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${DOMAIN}/cgi-bin/broker/v1/auth/start \
             -X POST \
             -H "Content-Type: application/json" \
-            -d '{"provider":"qbo","profile":"test"}')
+            -d '{"provider":"qbo","profile":"test"}' || echo "000")
 
-          echo "HTTP response code: $HTTP_CODE"
+          echo "Auth endpoint HTTP code: $HTTP_CODE"
 
           if [ "$HTTP_CODE" = "404" ]; then
             echo "⚠️  WARNING: Broker still returning 404. Check server logs."
@@ -79,10 +109,20 @@ jobs:
 
       - name: Deployment notification
         if: always()
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |
-          if [ "${{ job.status }}" = "success" ]; then
-            echo "✓ Broker deployed successfully to auth.industrial-linguistics.com"
+          if [ "$BRANCH" = "main" ]; then
+            DOMAIN="auth.industrial-linguistics.com"
+            ENV_NAME="Production"
           else
-            echo "✗ Deployment failed. Check logs above."
+            DOMAIN="auth-dev.industrial-linguistics.com"
+            ENV_NAME="Development"
+          fi
+
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✓ Broker deployed successfully to ${ENV_NAME} (${DOMAIN})"
+          else
+            echo "✗ Deployment to ${ENV_NAME} failed. Check logs above."
             exit 1
           fi

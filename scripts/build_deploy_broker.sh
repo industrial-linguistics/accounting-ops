@@ -8,9 +8,30 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Deployment paths
-BROKER_BIN_PATH="/var/www/vhosts/auth.industrial-linguistics.com/cgi-bin/broker"
-BROKER_DATA_DIR="/var/www/vhosts/auth.industrial-linguistics.com/data"
+# Determine environment based on parameter or git branch
+ENVIRONMENT="${1:-}"
+if [ -z "$ENVIRONMENT" ]; then
+    # Auto-detect from git branch
+    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+    if [ "$BRANCH" = "main" ]; then
+        ENVIRONMENT="production"
+    else
+        ENVIRONMENT="development"
+    fi
+fi
+
+# Set deployment paths based on environment
+if [ "$ENVIRONMENT" = "production" ]; then
+    DOMAIN="auth.industrial-linguistics.com"
+    echo "${GREEN}==> Deploying to PRODUCTION (${DOMAIN})${NC}"
+else
+    DOMAIN="auth-dev.industrial-linguistics.com"
+    echo "${GREEN}==> Deploying to DEVELOPMENT (${DOMAIN})${NC}"
+fi
+
+BROKER_BIN_PATH="/var/www/vhosts/${DOMAIN}/cgi-bin/broker"
+BROKER_DATA_DIR="/var/www/vhosts/${DOMAIN}/data"
+BROKER_CONF="/var/www/vhosts/${DOMAIN}/conf/broker.env"
 
 echo "${GREEN}==> Building OAuth broker for OpenBSD...${NC}"
 
@@ -63,18 +84,34 @@ else
 fi
 
 # Check if config file exists
-BROKER_CONF="/var/www/vhosts/auth.industrial-linguistics.com/conf/broker.env"
 if [ -f "${BROKER_CONF}" ]; then
     echo "${GREEN}✓ Configuration file exists${NC}"
+    # Check permissions
+    PERMS=$(stat -f "%Op" "${BROKER_CONF}" 2>/dev/null | tail -c 4)
+    OWNER=$(stat -f "%Su:%Sg" "${BROKER_CONF}" 2>/dev/null)
+    echo "  Permissions: ${PERMS} Owner: ${OWNER}"
+    if [ "$PERMS" != "0640" ] && [ "$PERMS" != "640" ]; then
+        echo "${YELLOW}  ⚠ WARNING: Permissions should be 640 (rw-r-----)${NC}"
+        echo "  Fix with: doas chmod 640 ${BROKER_CONF}"
+    fi
+    if [ "$OWNER" != "root:www" ]; then
+        echo "${YELLOW}  ⚠ WARNING: Owner should be root:www${NC}"
+        echo "  Fix with: doas chown root:www ${BROKER_CONF}"
+    fi
 else
     echo "${YELLOW}⚠ Configuration file missing: ${BROKER_CONF}${NC}"
     echo "  Create this file with OAuth credentials before testing"
+    echo "  Set permissions: doas chmod 640 ${BROKER_CONF}"
+    echo "  Set ownership: doas chown root:www ${BROKER_CONF}"
 fi
 
 echo ""
 echo "${GREEN}==> Deployment complete!${NC}"
 echo ""
+echo "Environment: ${ENVIRONMENT}"
+echo "Domain: https://${DOMAIN}"
+echo ""
 echo "Next steps:"
-echo "  1. Ensure ${BROKER_CONF} exists with OAuth credentials"
-echo "  2. Test broker: curl https://auth.industrial-linguistics.com/v1/auth/start"
+echo "  1. Ensure ${BROKER_CONF} exists with OAuth credentials (640, root:www)"
+echo "  2. Test broker: curl https://${DOMAIN}/cgi-bin/broker/healthz"
 echo "  3. Check logs: tail -f /var/www/logs/error_log"
