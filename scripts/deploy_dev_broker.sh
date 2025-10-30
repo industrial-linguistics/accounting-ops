@@ -31,8 +31,8 @@ cd "${SCRIPT_DIR}/../cmd/broker" || exit 1
 echo "${GREEN}==> Building OAuth broker for OpenBSD (development)...${NC}"
 echo "Building static binary for OpenBSD/amd64..."
 
-# Build for OpenBSD amd64 with static linking
-CGO_ENABLED=0 GOOS=openbsd GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o broker
+# Build for OpenBSD amd64 with CGO (required for mattn/go-sqlite3)
+CGO_ENABLED=1 GOOS=openbsd GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o broker
 
 if [ ! -f broker ]; then
     echo "${RED}ERROR: Build failed - broker binary not created${NC}"

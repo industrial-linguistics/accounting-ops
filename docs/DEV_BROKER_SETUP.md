@@ -364,7 +364,7 @@ Profiles are stored separately in your OS keychain, so dev and prod credentials 
 1. Verify httpd configuration includes the development virtual host
 2. Check broker binary exists: `ls -lh /var/www/vhosts/auth-dev.industrial-linguistics.com/cgi-bin/broker`
 3. Check slowcgi is running: `rcctl check slowcgi`
-4. Check httpd logs: `doas tail -f /var/www/logs/access.log /var/www/logs/error.log`
+4. Check httpd logs: `tail -f /var/www/logs/access.log /var/www/logs/error.log` (no doas needed, logs are readable by aops user)
 
 ### Issue: Missing broker.env
 

@@ -120,7 +120,17 @@ See [DEV_BROKER_SETUP.md](DEV_BROKER_SETUP.md) for complete development environm
   rcctl check httpd
   ```
   - Service should be enabled and running
-  - Check logs for errors: `tail -f /var/www/logs/error_log`
+
+- [ ] **Error Log Access**
+  ```bash
+  # View recent errors (readable by aops user, no doas needed)
+  tail -100 /var/www/logs/error.log
+
+  # Monitor errors in real-time
+  tail -f /var/www/logs/error.log
+  ```
+  - **Note:** The error log is readable by the aops user without requiring doas/root privileges
+  - Check for broker panics, segmentation faults, or configuration errors
 
 ## TLS/SSL Configuration (Cloudflare)
 
@@ -371,7 +381,7 @@ See [DEV_BROKER_SETUP.md](DEV_BROKER_SETUP.md) for complete development environm
 - [ ] **Broker Logs**
   ```bash
   # Check httpd error logs
-  tail -f /var/www/logs/error_log
+  tail -f /var/www/logs/error.log
   # Check access logs
   tail -f /var/www/logs/access_log
   ```
