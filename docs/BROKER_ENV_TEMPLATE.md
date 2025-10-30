@@ -11,7 +11,7 @@ QBO_CLIENT_ID=your_client_id_here
 QBO_CLIENT_SECRET=your_client_secret_here
 
 # Redirect URI (must match what's registered in Intuit Developer Portal)
-QBO_REDIRECT=https://auth.industrial-linguistics.com/v1/callback/qbo
+QBO_REDIRECT=https://auth.industrial-linguistics.com/cgi-bin/broker/v1/callback/qbo
 
 # OAuth Scopes (space-separated)
 QBO_SCOPES=com.intuit.quickbooks.accounting
@@ -43,7 +43,7 @@ XERO_CLIENT_ID=your_client_id_here
 # XERO_CLIENT_SECRET=your_client_secret_here
 
 # Redirect URI (must match what's registered in Xero Developer Portal)
-XERO_REDIRECT=https://auth.industrial-linguistics.com/v1/callback/xero
+XERO_REDIRECT=https://auth.industrial-linguistics.com/cgi-bin/broker/v1/callback/xero
 
 # OAuth Scopes (space-separated)
 XERO_SCOPES=offline_access accounting.transactions accounting.contacts
@@ -72,7 +72,7 @@ DEPUTY_CLIENT_ID=your_client_id_here
 DEPUTY_CLIENT_SECRET=your_client_secret_here
 
 # Redirect URI (must match what's registered in Deputy)
-DEPUTY_REDIRECT=https://auth.industrial-linguistics.com/v1/callback/deputy
+DEPUTY_REDIRECT=https://auth.industrial-linguistics.com/cgi-bin/broker/v1/callback/deputy
 
 # OAuth Scopes (space-separated)
 # Note: Always include longlife_refresh_token for refresh token support
@@ -138,20 +138,20 @@ RATE_LIMIT_REFRESH_WINDOW_SECONDS=60
 # QuickBooks - Sandbox
 QBO_CLIENT_ID=AByy3Gi73gqarhqmV7iSYccpLxCGo1ry1yJwHHBiM2OnbGrweP
 QBO_CLIENT_SECRET=mG1Vo0kXIlDq5wfggH5SjCwy3FKPUnH0LkeGG3bh
-QBO_REDIRECT=https://auth-dev.industrial-linguistics.com/v1/callback/qbo
+QBO_REDIRECT=https://auth-dev.industrial-linguistics.com/cgi-bin/broker/v1/callback/qbo
 QBO_SCOPES=com.intuit.quickbooks.accounting
 QBO_ENVIRONMENT=sandbox
 
 # Xero - Production (connects to demo companies)
 XERO_CLIENT_ID=your_xero_dev_client_id
-XERO_REDIRECT=https://auth-dev.industrial-linguistics.com/v1/callback/xero
+XERO_REDIRECT=https://auth-dev.industrial-linguistics.com/cgi-bin/broker/v1/callback/xero
 XERO_SCOPES=offline_access accounting.transactions accounting.contacts
 XERO_ENVIRONMENT=production
 
 # Deputy - Production
 DEPUTY_CLIENT_ID=your_deputy_dev_client_id
 DEPUTY_CLIENT_SECRET=your_deputy_dev_client_secret
-DEPUTY_REDIRECT=https://auth-dev.industrial-linguistics.com/v1/callback/deputy
+DEPUTY_REDIRECT=https://auth-dev.industrial-linguistics.com/cgi-bin/broker/v1/callback/deputy
 DEPUTY_SCOPES=longlife_refresh_token
 DEPUTY_ENVIRONMENT=production
 
@@ -173,14 +173,14 @@ QBO_ENVIRONMENT=production
 
 # Xero - Production
 XERO_CLIENT_ID=your_production_xero_client_id
-XERO_REDIRECT=https://auth.industrial-linguistics.com/v1/callback/xero
+XERO_REDIRECT=https://auth.industrial-linguistics.com/cgi-bin/broker/v1/callback/xero
 XERO_SCOPES=offline_access accounting.transactions accounting.contacts
 XERO_ENVIRONMENT=production
 
 # Deputy - Production
 DEPUTY_CLIENT_ID=your_production_deputy_client_id
 DEPUTY_CLIENT_SECRET=your_production_deputy_client_secret
-DEPUTY_REDIRECT=https://auth.industrial-linguistics.com/v1/callback/deputy
+DEPUTY_REDIRECT=https://auth.industrial-linguistics.com/cgi-bin/broker/v1/callback/deputy
 DEPUTY_SCOPES=longlife_refresh_token
 DEPUTY_ENVIRONMENT=production
 
