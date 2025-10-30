@@ -2,6 +2,19 @@
 
 This checklist ensures all components are properly deployed and configured for the QuickBooks Online integration.
 
+## Environment Selection
+
+**Two broker environments are available:**
+
+- **Production**: `auth.industrial-linguistics.com` - For live customer integrations with production OAuth credentials
+- **Development**: `auth-dev.industrial-linguistics.com` - For testing with sandbox OAuth credentials
+
+See [DEV_BROKER_SETUP.md](DEV_BROKER_SETUP.md) for complete development environment setup.
+
+**This checklist covers PRODUCTION deployment.** For development setup, follow the separate guide.
+
+---
+
 ## Server Access & Environment
 
 - [ ] **SSH Access Verified**

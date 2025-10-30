@@ -50,8 +50,13 @@ func NewApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Default to production broker, override with ACCOUNTING_OPS_BROKER environment variable
+	brokerURL := "https://auth.industrial-linguistics.com/cgi-bin/broker"
+	if envURL := os.Getenv("ACCOUNTING_OPS_BROKER"); envURL != "" {
+		brokerURL = strings.TrimRight(envURL, "/")
+	}
 	return &App{
-		BrokerBaseURL: "https://auth.industrial-linguistics.com/cgi-bin/broker",
+		BrokerBaseURL: brokerURL,
 		HTTPClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -90,7 +95,20 @@ func (a *App) Run(args []string) int {
 }
 
 func (a *App) printUsage() {
-	fmt.Fprintf(a.Stdout, `Accounting Ops CLI\n\nCommands:\n  connect <provider> --profile NAME [--broker URL]\n  list\n  whoami --profile NAME --provider PROVIDER\n  refresh --profile NAME --provider PROVIDER\n  revoke --profile NAME --provider PROVIDER\n`)
+	fmt.Fprintf(a.Stdout, `Accounting Ops CLI
+
+Commands:
+  connect <provider> --profile NAME [--broker URL]
+  list
+  whoami --profile NAME --provider PROVIDER
+  refresh --profile NAME --provider PROVIDER [--broker URL]
+  revoke --profile NAME --provider PROVIDER
+
+Environment Variables:
+  ACCOUNTING_OPS_BROKER  Override default broker URL
+                         Production (default): https://auth.industrial-linguistics.com/cgi-bin/broker
+                         Development: https://auth-dev.industrial-linguistics.com/cgi-bin/broker
+`)
 }
 
 func (a *App) runConnect(args []string) int {

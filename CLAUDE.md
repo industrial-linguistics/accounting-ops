@@ -96,10 +96,12 @@ The Go broker is **mandatory** for OAuth flows because:
 
 **Broker Deployment:**
 - Runs on OpenBSD under `httpd` + `slowcgi` in chroot `/var/www`
-- Domain: `auth.industrial-linguistics.com`
+- **Two environments** (see [docs/ARCHITECTURE_DECISIONS.md](docs/ARCHITECTURE_DECISIONS.md) ADR-001):
+  - **Production**: `auth.industrial-linguistics.com` - production OAuth credentials
+  - **Development**: `auth-dev.industrial-linguistics.com` - sandbox/development credentials
 - TLS termination handled by Cloudflare (origin server may use HTTP or HTTPS)
 - Session data stored in SQLite; **never stores long-lived refresh tokens**
-- Client secrets live in `conf/broker.env` only
+- Client secrets live in `conf/broker.env` only (separate file per environment)
 
 **Key Endpoints:**
 - `POST /v1/auth/start` - Initiate OAuth, returns auth URL and poll URL
@@ -108,11 +110,16 @@ The Go broker is **mandatory** for OAuth flows because:
 
 **CLI (`acct`) Commands:**
 ```bash
+# Production (default)
 acct connect xero|deputy|qbo --profile NAME   # Open browser, complete OAuth
 acct list                                     # List profiles
 acct whoami --profile NAME                    # Test API connectivity
 acct refresh --profile NAME                   # Refresh tokens
 acct revoke --profile NAME                    # Remove credentials
+
+# Development (override broker URL)
+export ACCOUNTING_OPS_BROKER=https://auth-dev.industrial-linguistics.com/cgi-bin/broker
+acct connect qbo --profile test-company       # Uses sandbox credentials
 ```
 
 Token storage uses OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service).
