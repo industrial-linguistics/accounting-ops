@@ -58,12 +58,16 @@ func defaultEnvPath() string {
 	if v := os.Getenv("BROKER_ENV_PATH"); v != "" {
 		return v
 	}
-	return filepath.Join("conf", "broker.env")
+	// CGI binary runs with cwd = its directory (cgi-bin/)
+	// Config is in ../conf/broker.env relative to cgi-bin/
+	return filepath.Join("..", "conf", "broker.env")
 }
 
 func defaultDBPath() string {
 	if v := os.Getenv("BROKER_DB_PATH"); v != "" {
 		return v
 	}
-	return filepath.Join("data", "broker.sqlite")
+	// CGI binary runs with cwd = its directory (cgi-bin/)
+	// Database is in ../data/broker.sqlite relative to cgi-bin/
+	return filepath.Join("..", "data", "broker.sqlite")
 }
