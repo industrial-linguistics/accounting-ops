@@ -19,8 +19,8 @@ We evaluated two approaches:
 ### Decision
 
 We will use **separate broker instances**:
-- **Production**: `https://auth.industrial-linguistics.com/cgi-bin/broker`
-- **Development**: `https://auth-dev.industrial-linguistics.com/cgi-bin/broker`
+- **Production**: `https://auth.industrial-linguistics.com/v1/broker`
+- **Development**: `https://auth-dev.industrial-linguistics.com/v1/broker`
 
 The CLI will support the `ACCOUNTING_OPS_BROKER` environment variable to override the default broker URL.
 
@@ -52,11 +52,11 @@ The simplicity and isolation benefits outweigh the infrastructure overhead, espe
 acct connect qbo --profile mycompany
 
 # Development: override via environment variable
-export ACCOUNTING_OPS_BROKER=https://auth-dev.industrial-linguistics.com/cgi-bin/broker
+export ACCOUNTING_OPS_BROKER=https://auth-dev.industrial-linguistics.com/v1/broker
 acct connect qbo --profile mycompany
 
 # Or via flag
-acct connect qbo --profile mycompany --broker https://auth-dev.industrial-linguistics.com/cgi-bin/broker
+acct connect qbo --profile mycompany --broker https://auth-dev.industrial-linguistics.com/v1/broker
 ```
 
 **DNS Configuration:**

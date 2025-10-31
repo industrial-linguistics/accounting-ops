@@ -117,9 +117,12 @@ acct whoami --profile NAME                    # Test API connectivity
 acct refresh --profile NAME                   # Refresh tokens
 acct revoke --profile NAME                    # Remove credentials
 
-# Development (override broker URL)
-export ACCOUNTING_OPS_BROKER=https://auth-dev.industrial-linguistics.com/cgi-bin/broker
+# Development (override broker URL via environment variable)
+export ACCOUNTING_OPS_BROKER=https://auth-dev.industrial-linguistics.com/v1/broker
 acct connect qbo --profile test-company       # Uses sandbox credentials
+
+# Development (override broker URL via flag)
+acct connect qbo --profile test-company --broker https://auth-dev.industrial-linguistics.com/v1/broker
 ```
 
 Token storage uses OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service).

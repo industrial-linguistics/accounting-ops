@@ -28,15 +28,15 @@ First-run experiences for both the CLI and optional GUI open a browser to a host
 /var/www/
   vhosts/auth.industrial-linguistics.com/
     htdocs/                          # static success/failure pages
-    cgi-bin/broker                   # Go CGI binary
+    v1/broker                        # Go CGI binary
     data/broker.sqlite               # SQLite DB
     logs/broker.log
     conf/broker.env                  # client IDs/secrets, master key
     tmp/                             # scratch
 ```
-- `cgi-bin/broker`: `0555`, owner `www:www`.
+- `v1/broker`: `0755`, owner `aops:daemon`.
 - `data/` directory and `broker.sqlite`: owner `www:www`, modes `0700/0600`.
-- `conf/broker.env`: owner `www:wheel`, mode `0400`.
+- `conf/broker.env`: owner `root:www`, mode `0640`.
 - Ensure `/var/www/dev/{null,zero,random,urandom}` exist (default install).
 
 ### httpd + slowcgi
@@ -77,18 +77,18 @@ server "auth.industrial-linguistics.com" {
 - Persist only short-lived session state in SQLite.
 
 ### Endpoints (JSON)
-- `POST /cgi-bin/broker/v1/auth/start`
+- `POST /v1/broker/v1/auth/start`
   - Body: `{ "provider":"xero|deputy|qbo", "profile":"string", "pubkey":"base64(optional)" }`
-  - Response: `{ "auth_url":"…", "poll_url":"/v1/auth/poll/{session}", "session":"id" }`
+  - Response: `{ "auth_url":"…", "poll_url":"/v1/broker/v1/auth/poll/{session}", "session":"id" }`
   - Server creates state, PKCE verifier (if applicable), and records a session row.
-- `GET /cgi-bin/broker/callback/{provider}`
+- `GET /v1/callback/{provider}`
   - Validates state. For QBO, capture `realmId`. Exchanges code for tokens, persists tokens inside the session, marks `ready_at`, and renders a success page.
-- `GET /cgi-bin/broker/v1/auth/poll/{session}`
+- `GET /v1/broker/v1/auth/poll/{session}`
   - Performs long or short polling. Returns tokens once ready, then deletes or tombstones them.
-- `POST /cgi-bin/broker/v1/token/refresh`
+- `POST /v1/broker/v1/token/refresh`
   - Body: `{ "provider":"deputy|qbo|xero", "refresh_token":"…" }`
   - Uses provider secrets when required and returns rotated tokens. Xero PKCE refresh does not need a secret.
-- `GET /cgi-bin/broker/healthz` → `200 OK`.
+- `GET /v1/broker/healthz` → `200 OK`.
 
 ### Provider-Specific Notes
 - **Xero**: Use S256 PKCE. After token exchange, call `/connections` to list tenants so the CLI can select and store the `xero-tenant-id` for API calls. Access tokens last 30 minutes; refresh tokens expire after 60 days of inactivity and must be rotated.
@@ -121,15 +121,15 @@ CREATE INDEX idx_auth_session_exp ON auth_session(expires_at);
 XERO_CLIENT_ID=...
 # Optional secret for web-app registration
 XERO_CLIENT_SECRET=...
-XERO_REDIRECT=https://auth.industrial-linguistics.com/cgi-bin/broker/callback/xero
+XERO_REDIRECT=https://auth.industrial-linguistics.com/v1/callback/xero
 
 DEPUTY_CLIENT_ID=...
 DEPUTY_CLIENT_SECRET=...
-DEPUTY_REDIRECT=https://auth.industrial-linguistics.com/cgi-bin/broker/callback/deputy
+DEPUTY_REDIRECT=https://auth.industrial-linguistics.com/v1/callback/deputy
 
 QBO_CLIENT_ID=...
 QBO_CLIENT_SECRET=...
-QBO_REDIRECT=https://auth.industrial-linguistics.com/cgi-bin/broker/callback/qbo
+QBO_REDIRECT=https://auth.industrial-linguistics.com/v1/callback/qbo
 
 BROKER_MASTER_KEY=base64-32B-aesgcm
 ```
@@ -183,18 +183,18 @@ A simple three-step wizard: pick system → open browser → confirm connection.
 
 ## Vendor Setup Checklists
 ### Xero
-1. Create a developer account and application. Choose Auth Code with PKCE for native flows or Web App for server-side secret usage. Configure redirect URI `https://auth.industrial-linguistics.com/cgi-bin/broker/callback/xero`.
+1. Create a developer account and application. Choose Auth Code with PKCE for native flows or Web App for server-side secret usage. Configure redirect URI `https://auth.industrial-linguistics.com/v1/callback/xero`.
 2. Request only required scopes plus `offline_access` for refresh.
 3. Every API call requires the `xero-tenant-id` header; discover tenants via `/connections`.
 4. Respect uncertified caps (25 tenant connections total; two uncertified apps per organisation). Plan for Xero App Store certification for broad rollout.
 
 ### Deputy
 1. Create a trial account and Once profile, then register an OAuth client at `once.deputy.com`.
-2. Redirect URI: `https://auth.industrial-linguistics.com/cgi-bin/broker/callback/deputy`.
+2. Redirect URI: `https://auth.industrial-linguistics.com/v1/callback/deputy`.
 3. Always request scope `longlife_refresh_token`. Refresh exchanges require the client secret and rotate the refresh token. Token responses include the endpoint domain that must be stored.
 
 ### QuickBooks Online (Intuit)
-1. Create an Intuit Developer app. Register only HTTPS redirects: `https://auth.industrial-linguistics.com/cgi-bin/broker/callback/qbo` (no localhost or IPs in production).
+1. Create an Intuit Developer app. Register only HTTPS redirects: `https://auth.industrial-linguistics.com/v1/callback/qbo` (no localhost or IPs in production).
 2. Scope: `com.intuit.quickbooks.accounting` (add OpenID scopes only when identity is needed).
 3. Expect `realmId` in the callback. Store it per profile for API base paths. Access tokens last ~1 hour; refresh tokens rotate and are valid up to 100 days.
 
@@ -220,8 +220,9 @@ set -euo pipefail
 cd /var/www/vhosts/auth.industrial-linguistics.com/accounting-ops
 git pull --ff-only
 export CGO_ENABLED=0
-( cd cmd/broker && go build -trimpath -ldflags="-s -w" -o ../../cgi-bin/broker )
-install -o www -g www -m 0555 cgi-bin/broker /var/www/vhosts/auth.industrial-linguistics.com/cgi-bin/broker
+( cd cmd/broker && go build -trimpath -ldflags="-s -w" -o ../../v1/broker )
+install -d -o root -g daemon -m 0755 /var/www/vhosts/auth.industrial-linguistics.com/v1
+install -o aops -g daemon -m 0755 v1/broker /var/www/vhosts/auth.industrial-linguistics.com/v1/broker
 install -d -o www -g www -m 0700 /var/www/vhosts/auth.industrial-linguistics.com/data
 touch /var/www/vhosts/auth.industrial-linguistics.com/data/broker.sqlite
 chown www:www /var/www/vhosts/auth.industrial-linguistics.com/data/broker.sqlite
@@ -253,20 +254,20 @@ jobs:
 ## HTTP Examples
 - **Start (CLI → Broker)**
   ```http
-  POST /cgi-bin/broker/v1/auth/start
+  POST /v1/broker/v1/auth/start
   { "provider":"qbo", "profile":"acme" }
   → { "auth_url":"https://appcenter.intuit.com/connect/oauth2?...",
-      "poll_url":"/cgi-bin/broker/v1/auth/poll/3f9c...", "session":"3f9c..." }
+      "poll_url":"/v1/broker/v1/auth/poll/3f9c...", "session":"3f9c..." }
   ```
 - **Poll (CLI → Broker)**
   ```http
-  GET /cgi-bin/broker/v1/auth/poll/3f9c...
+  GET /v1/broker/v1/auth/poll/3f9c...
   → { "access_token":"...", "refresh_token":"...", "expires_at":1699999999,
        "provider":"qbo", "realmId":"1234567890", "scopes":"..." }
   ```
 - **Refresh (CLI → Broker)**
   ```http
-  POST /cgi-bin/broker/v1/token/refresh
+  POST /v1/broker/v1/token/refresh
   { "provider":"qbo", "refresh_token":"..." }
   → { "access_token":"...", "refresh_token":"...", "expires_at":... }
   ```

@@ -51,7 +51,7 @@ func NewApp() (*App, error) {
 		return nil, err
 	}
 	// Default to production broker, override with ACCOUNTING_OPS_BROKER environment variable
-	brokerURL := "https://auth.industrial-linguistics.com/cgi-bin/broker"
+	brokerURL := "https://auth.industrial-linguistics.com/v1/broker"
 	if envURL := os.Getenv("ACCOUNTING_OPS_BROKER"); envURL != "" {
 		brokerURL = strings.TrimRight(envURL, "/")
 	}
@@ -106,8 +106,8 @@ Commands:
 
 Environment Variables:
   ACCOUNTING_OPS_BROKER  Override default broker URL
-                         Production (default): https://auth.industrial-linguistics.com/cgi-bin/broker
-                         Development: https://auth-dev.industrial-linguistics.com/cgi-bin/broker
+                         Production (default): https://auth.industrial-linguistics.com/v1/broker
+                         Development: https://auth-dev.industrial-linguistics.com/v1/broker
 `)
 }
 
