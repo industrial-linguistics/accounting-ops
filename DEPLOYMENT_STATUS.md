@@ -8,7 +8,7 @@
 
 ## Summary
 
-The server infrastructure is properly configured, but the OAuth broker application is **NOT DEPLOYED**. The broker binary and configuration files need to be built and deployed before QuickBooks integration can function.
+The server infrastructure is properly configured, and the OAuth broker binary has now been deployed to the OpenBSD host. QuickBooks production and development `broker.env` files are in place, enabling QuickBooks-specific OAuth flows to move forward while Deputy and Xero configuration work remains.
 
 ---
 
@@ -36,41 +36,34 @@ The server infrastructure is properly configured, but the OAuth broker applicati
 - **FastCGI Support:** ✅ /cgi-bin/* path configured with fastcgi
 - **Root Path:** ✅ Points to /vhosts/auth.industrial-linguistics.com
 
+### Broker Deployment
+- **Broker Binary:** ✅ Present at `/var/www/vhosts/auth.industrial-linguistics.com/cgi-bin/broker`
+- **QuickBooks broker.env:** ✅ Production and development variants deployed
+
 ---
 
 ## ❌ What's Missing
 
 ### Critical - Deployment Blockers
 
-1. **OAuth Broker Binary NOT DEPLOYED**
-   - Location: `/var/www/vhosts/auth.industrial-linguistics.com/cgi-bin/broker`
-   - Status: **MISSING** (directory is empty)
-   - Impact: OAuth flows cannot work without the broker
-
-2. **Broker Configuration NOT DEPLOYED**
+1. **Broker Configuration INCOMPLETE**
    - Location: `/var/www/vhosts/auth.industrial-linguistics.com/conf/broker.env`
-   - Status: **MISSING** (directory is empty)
-   - Required contents:
-     - QuickBooks OAuth client ID
-     - QuickBooks OAuth client secret
+   - Status: **PARTIAL** (QuickBooks production and development configuration files deployed; Deputy and Xero credentials still outstanding)
+   - Required additions:
      - Deputy OAuth credentials
      - Xero OAuth credentials
-     - Database path for session storage
+     - Database path confirmation for all environments
 
-3. **Deployment Script NOT CREATED**
+2. **Deployment Script NOT CREATED**
    - Expected location: `scripts/build_deploy_openbsd.sh`
    - Status: **MISSING** (scripts directory doesn't exist)
    - Referenced in: CLAUDE.md, deployment docs
 
 ### Testing Status
 
-- **Endpoint Tests:** All endpoints return 404 (expected without broker binary)
-  - POST /v1/auth/start → 404
-  - GET /v1/auth/poll/{session} → 404
-  - POST /v1/token/refresh → 404
-
+- **Endpoint Tests:** ⚠️ Pending re-test after broker deployment (last run prior to deployment returned 404 responses)
 - **Cloudflare Status:** Working correctly
-  - HTTPS: Returns OpenBSD httpd 404 (correct behavior - shows origin is reachable)
+  - HTTPS: Returns OpenBSD httpd 404 (confirms origin is reachable)
   - HTTP: No automatic redirect to HTTPS configured
 
 ---
@@ -78,6 +71,8 @@ The server infrastructure is properly configured, but the OAuth broker applicati
 ## 📋 Action Items - What You Need To Do
 
 ### 1. Build the OAuth Broker Binary
+
+**Status:** ✅ Completed (binary deployed to OpenBSD host). Repeat these steps when publishing new broker changes.
 
 ```bash
 # From the project root
@@ -88,6 +83,8 @@ CGO_ENABLED=0 GOOS=openbsd GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o b
 **Expected output:** `cmd/broker/broker` (statically-linked OpenBSD binary)
 
 ### 2. Create Broker Configuration File
+
+**Status:** ⚠️ Partial. QuickBooks production and development `broker.env` files are live; Deputy and Xero entries still need to be populated.
 
 Create `broker.env` with the following format (example):
 
@@ -234,14 +231,14 @@ Based on the documentation, the broker should support:
 | Infrastructure | Directory structure | ✅ Done |
 | Infrastructure | Chroot DNS | ✅ Done |
 | Infrastructure | Chroot CA certs | ✅ Done |
-| Deployment | Broker binary | ❌ **NOT DEPLOYED** |
-| Deployment | Broker config (broker.env) | ❌ **NOT DEPLOYED** |
+| Deployment | Broker binary | ✅ Deployed to `/var/www/vhosts/auth.industrial-linguistics.com/cgi-bin/broker` |
+| Deployment | Broker config (broker.env) | ⚠️ Partial (QuickBooks prod & dev present; Deputy/Xero pending) |
 | Deployment | Deployment script | ❌ **NOT CREATED** |
-| Configuration | QuickBooks OAuth credentials | ⚠️ Unknown |
+| Configuration | QuickBooks OAuth credentials | ✅ Available for production & development |
 | Configuration | Deputy OAuth credentials | ⚠️ Unknown |
 | Configuration | Xero OAuth credentials | ⚠️ Unknown |
 | Configuration | Redirect URIs registered | ⚠️ Unknown |
-| Testing | Broker endpoints responding | ❌ Not working (404) |
+| Testing | Broker endpoints responding | ⚠️ Pending re-test (previous check returned 404) |
 | Testing | End-to-end OAuth flow | ❌ Cannot test yet |
 
 ---
